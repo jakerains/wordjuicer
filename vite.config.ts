@@ -4,7 +4,8 @@ import { VitePWA } from 'vite-plugin-pwa';
 
 // PWA Configuration
 const pwaConfig = {
-  registerType: 'prompt',
+  registerType: 'autoUpdate',
+  strategies: 'generateSW',
   manifest: {
     name: 'Text Juicer',
     short_name: 'Text Juicer',
@@ -15,56 +16,56 @@ const pwaConfig = {
     start_url: '/',
     icons: [
       {
-        src: '/juicericons/icon-48.png',
-        sizes: '48x48',
+        src: '/juicericons/icon-29.png',
+        sizes: '29x29',
         type: 'image/png',
         purpose: 'any'
       },
       {
-        src: '/juicericons/icon-72.png',
-        sizes: '72x72',
+        src: '/juicericons/icon-40.png',
+        sizes: '40x40',
         type: 'image/png',
         purpose: 'any'
       },
       {
-        src: '/juicericons/icon-96.png',
-        sizes: '96x96',
+        src: '/juicericons/icon-60.png',
+        sizes: '60x60',
         type: 'image/png',
         purpose: 'any'
       },
       {
-        src: '/juicericons/icon-128.png',
-        sizes: '128x128',
+        src: '/juicericons/icon-76.png',
+        sizes: '76x76',
         type: 'image/png',
         purpose: 'any'
       },
       {
-        src: '/juicericons/icon-144.png',
-        sizes: '144x144',
+        src: '/juicericons/icon-29@2x.png',
+        sizes: '58x58',
         type: 'image/png',
         purpose: 'any'
       },
       {
-        src: '/juicericons/icon-152.png',
+        src: '/juicericons/icon-40@2x.png',
+        sizes: '80x80',
+        type: 'image/png',
+        purpose: 'any'
+      },
+      {
+        src: '/juicericons/icon-60@2x.png',
+        sizes: '120x120',
+        type: 'image/png',
+        purpose: 'any'
+      },
+      {
+        src: '/juicericons/icon-76@2x.png',
         sizes: '152x152',
         type: 'image/png',
         purpose: 'any'
       },
       {
-        src: '/juicericons/icon-192.png',
-        sizes: '192x192',
-        type: 'image/png',
-        purpose: 'any'
-      },
-      {
-        src: '/juicericons/icon-256.png',
-        sizes: '256x256',
-        type: 'image/png',
-        purpose: 'any'
-      },
-      {
-        src: '/juicericons/icon-512.png',
-        sizes: '512x512',
+        src: '/juicericons/icon-83.5@2x.png',
+        sizes: '167x167',
         type: 'image/png',
         purpose: 'any'
       },
@@ -74,12 +75,23 @@ const pwaConfig = {
         type: 'image/png',
         purpose: 'maskable'
       }
-    ]
+    ],
+    meta: {
+      'mobile-web-app-capable': 'yes',
+      'apple-mobile-web-app-capable': 'yes',
+      'apple-mobile-web-app-status-bar-style': 'black-translucent',
+      'theme-color': '#F96C57'
+    }
   },
   workbox: {
-    globPatterns: ['**/*.{js,css,html,ico,png,svg,json,webmanifest}'],
-    globIgnores: ['**/node_modules/**/*'],
-    maximumFileSizeToCacheInBytes: 50 * 1024 * 1024, // 50MB for model files
+    globPatterns: [
+      '**/*.{js,css,html,ico,png,svg,json,webmanifest}'
+    ],
+    globIgnores: [
+      '**/node_modules/**/*',
+      'dev-dist/**/*'
+    ],
+    maximumFileSizeToCacheInBytes: 50 * 1024 * 1024,
     runtimeCaching: [
       {
         urlPattern: /^https:\/\/api-inference\.huggingface\.co\/.*/,
@@ -89,16 +101,48 @@ const pwaConfig = {
           networkTimeoutSeconds: 10,
           expiration: {
             maxEntries: 50,
-            maxAgeSeconds: 24 * 60 * 60 // 24 hours
+            maxAgeSeconds: 24 * 60 * 60
+          }
+        }
+      },
+      {
+        urlPattern: /\.(?:js|css)$/,
+        handler: 'StaleWhileRevalidate',
+        options: {
+          cacheName: 'static-resources'
+        }
+      },
+      {
+        urlPattern: /\.(?:png|jpg|jpeg|svg|gif|webp)$/,
+        handler: 'CacheFirst',
+        options: {
+          cacheName: 'images',
+          expiration: {
+            maxEntries: 60,
+            maxAgeSeconds: 30 * 24 * 60 * 60
           }
         }
       }
-    ]
+    ],
+    cleanupOutdatedCaches: true,
+    skipWaiting: true,
+    clientsClaim: true
   },
   devOptions: {
-    enabled: true
+    enabled: true,
+    type: 'module',
+    navigateFallback: 'index.html'
   },
-  includeAssets: ['juicericons/*.png', 'Animation - *.json']
+  includeAssets: [
+    'juicericons/*.png',
+    'Animation - *.json',
+    'favicon.ico'
+  ],
+  injectRegister: 'auto',
+  // Increase chunk size warning limit
+  build: {
+    chunkSizeWarningLimit: 1000
+  }
 };
 
 // Configure build to handle favicon
@@ -147,7 +191,7 @@ export default defineConfig({
     ]
   },
   server: {
-    port: 5173,
-    host: true
+    port: 5174,
+    host: 'localhost'
   }
 });

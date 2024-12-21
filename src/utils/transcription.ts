@@ -79,7 +79,6 @@ async function performTranscription(
   provider: string
 ): Promise<{ text: string; timestamps: Array<{ time: number; text: string }> }> {
   const formData = new FormData();
-  formData.append('file', chunk);
   
   let apiUrl: string;
   let headers: Record<string, string> = { Authorization: `Bearer ${apiKey}` };
@@ -88,21 +87,40 @@ async function performTranscription(
     case 'huggingface': {
       apiUrl = 'https://api-inference.huggingface.co/models/openai/whisper-large-v3-turbo';
       headers['Content-Type'] = 'audio/wav';
+      formData.append('file', chunk);
       break;
     }
       
     case 'groq': {
       apiUrl = 'https://api.groq.com/openai/v1/audio/transcriptions';
+      headers = {
+        'Authorization': `Bearer ${apiKey}`,
+        'Accept': 'application/json'
+      };
+      
+      // Create a new File with a proper name and type
+      const audioFile = new File([chunk], 'audio.wav', { type: chunk.type || 'audio/wav' });
+      formData.append('file', audioFile);
       formData.append('model', 'whisper-large-v3-turbo');
+      formData.append('response_format', 'verbose_json');
+      formData.append('language', 'en');
+      formData.append('temperature', '0');
       break;
     }
       
     case 'openai': {
       apiUrl = 'https://api.openai.com/v1/audio/transcriptions';
+      // Create a new File with proper name and MIME type
+      const audioFile = new File([chunk], 'audio.wav', { 
+        type: chunk.type || 'audio/wav'
+      });
+      formData.append('file', audioFile);
       formData.append('model', 'whisper-1');
       formData.append('response_format', 'verbose_json');
-      // Remove Content-Type header to let browser set it with boundary
-      delete headers['Content-Type'];
+      // Set proper headers for multipart form data
+      headers = {
+        'Authorization': `Bearer ${apiKey}`
+      };
       break;
     }
       
@@ -111,6 +129,7 @@ async function performTranscription(
   }
 
   console.log(`Making request to ${apiUrl} with provider ${provider}`);
+  console.log('FormData contents:', Array.from(formData.entries()));
   
   const response = await fetch(apiUrl, {
     method: 'POST',
@@ -121,7 +140,7 @@ async function performTranscription(
   if (!response.ok) {
     const error = await response.json().catch(() => ({ error: 'Failed to parse error response' }));
     console.error('API Error:', error);
-    const errorMessage = error.error || `Failed to transcribe audio (${response.status})`;
+    const errorMessage = error.error?.message || error.error || `Failed to transcribe audio (${response.status})`;
     throw new Error(errorMessage);
   }
   
