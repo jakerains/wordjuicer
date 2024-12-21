@@ -1,0 +1,25 @@
+For all designs I ask you to make, have them be beautiful, not cookie cutter. Make webpages that are fully featured and worthy for production.
+
+By default, this template supports JSX syntax with Tailwind CSS classes, React hooks, and Lucide React for icons. Do not install other packages for UI themes, icons, etc unless absolutely necessary or I request them.
+
+Use icons from lucide-react for logos.
+
+Use stock photos from unsplash where appropriate, only valid URLs you know exist. Do not download the images, only link to them in image tags.
+
+Always include detailed comments in files explaining what each piece does and is for so I can learn what things do as we build.
+
+My github username is: jakerains
+You must record your changes into docs/CHANGELOG.md - If this doesn't exsist, please create it. 
+Document all requirements I gave you into the docs folder.
+Include functional/non-functional features, implementation details, and the intended user experience as well as any other details that would be helpful. 
+
+For every project discussion, maintain and update a project-map.md file in the docs directory following this structure:
+1. Create if not exists: docs/project-map.md
+2. Update with any new information discussed
+3. Include all technical decisions and architecture choices
+4. Maintain hierarchy using markdown heading levels
+5. Add <!-- markmap: fold --> comments for better visualization
+6. Ensure all major components and their relationships are documented
+7. Link to relevant documentation and code files when applicable
+
+The project map should be updated with every significant change or addition to the project, ensuring it remains a living document that accurately reflects the current state of the project.

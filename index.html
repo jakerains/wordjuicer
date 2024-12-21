@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/juicericons/icon-180.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/juicericons/icon-180.png" />
+    <link rel="apple-touch-icon" href="/juicericons/icon-192.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="theme-color" content="#F96C57" />
+    <meta name="description" content="Modern audio transcription app with offline support" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <title>Text Juicer</title>
+    <style>
+      /* Critical CSS for initial load */
+      #root {
+        min-height: 100vh;
+        background: linear-gradient(to bottom right, #A2AD1E, #F96C57, #F98128);
+      }
+      .loading-screen {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        color: white;
+        text-align: center;
+      }
+      .loading-screen h1 {
+        font-size: 2rem;
+        margin-bottom: 1rem;
+      }
+    </style>
+    <style>
+      /* Critical CSS for initial load */
+      #root {
+        min-height: 100vh;
+        background: linear-gradient(to bottom right, #A2AD1E, #F96C57, #F98128);
+      }
+      .loading-screen {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        color: white;
+        text-align: center;
+      }
+      .loading-screen h1 {
+        font-size: 2rem;
+        margin-bottom: 1rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root">
+      <div class="loading-screen">
+        <div class="loading-content">
+          <img 
+            src="/juicerbanner-wide.png" 
+            alt="Text Juicer" 
+            style="width: 300px; height: auto; margin-bottom: 2rem; object-fit: contain;" 
+          />
+          <div id="lottie-container"></div>
+          <p class="loading-text">Loading application...</p>
+        </div>
+      </div>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
+    <script>
+      (function() {
+        const container = document.getElementById('lottie-container');
+        if (!container) return;
+
+        // Configure container styles
+        Object.assign(container.style, {
+          width: '200px',
+          height: '200px',
+          margin: '0 auto 1rem'
+        });
+
+        // Initialize Lottie animation
+        lottie.loadAnimation({
+          container: container,
+          renderer: 'svg',
+          loop: true,
+          autoplay: true,
+          path: '/Animation - loading.json' // Initial loading animation
+        });
+      })();
+
+      // Initialize service worker
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').catch(console.error);
+        });
+      }
+    </script>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
