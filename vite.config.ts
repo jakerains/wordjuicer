@@ -7,8 +7,8 @@ const pwaConfig = {
   registerType: 'autoUpdate',
   strategies: 'generateSW',
   manifest: {
-    name: 'Text Juicer',
-    short_name: 'Text Juicer',
+    name: 'Word Juicer',
+    short_name: 'Word Juicer',
     description: 'Modern audio transcription app with offline support',
     theme_color: '#F96C57',
     background_color: '#1a1a1a',
