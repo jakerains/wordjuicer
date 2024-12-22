@@ -19,6 +19,13 @@ import { useNotificationStore } from './store/notificationStore';
 import { initializeDatabase } from './db';
 import { getFormattedVersion } from './utils/version';
 import { GlassButton } from './components/ui/GlassButton';
+import { initGA, pageview, trackTranscriptionStart, trackTranscriptionComplete, trackExport, trackError, trackFeatureUsage, trackInstallEvent, trackReturnVisit, trackAPIError } from './utils/analytics';
+import { useApiKeyStore } from './store/apiKeyStore';
+
+// Define error type with status
+interface APIError extends Error {
+  status?: number;
+}
 
 function App() {
   const [transcription, setTranscription] = useState('');
@@ -29,6 +36,7 @@ function App() {
   const [activeView, setActiveView] = useState<'dashboard' | 'transcribe' | 'history' | 'settings' | 'help'>('transcribe');
   const [currentFile, setCurrentFile] = useState<string>('');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { provider } = useApiKeyStore();
 
   const resetTranscription = () => {
     setTranscription('');
@@ -48,13 +56,41 @@ function App() {
       await loadTranscriptions();
     };
     init();
+
+    // Track return visit if applicable
+    const lastVisit = localStorage.getItem('lastVisit');
+    if (lastVisit) {
+      const daysSinceLastVisit = Math.floor((Date.now() - parseInt(lastVisit)) / (1000 * 60 * 60 * 24));
+      if (daysSinceLastVisit > 0) {
+        trackReturnVisit(daysSinceLastVisit);
+      }
+    }
+    localStorage.setItem('lastVisit', Date.now().toString());
   }, []);
+
+  useEffect(() => {
+    // Initialize Google Analytics
+    initGA();
+    // Track initial page view
+    pageview(window.location.pathname);
+  }, []);
+
+  useEffect(() => {
+    // Track page view when activeView changes
+    pageview(`/${activeView}`);
+  }, [activeView]);
+
   const handleFileSelect = async (file: File) => {
     try {
       setIsLoading(true);
       setCurrentFile(file.name);
       setError(null);
       setProgress(0);
+      
+      trackTranscriptionStart('auto', provider as 'openai' | 'groq' | 'huggingface');
+      trackFeatureUsage('transcription_start');
+      
+      const startTime = Date.now();
       
       // Simulate progress updates
       const progressInterval = setInterval(() => {
@@ -73,13 +109,17 @@ function App() {
       clearInterval(progressInterval);
       setProgress(100);
       
+      const duration = (Date.now() - startTime) / 1000;
+      trackTranscriptionComplete(duration, 'auto', provider as 'openai' | 'groq' | 'huggingface', file.size);
+      trackFeatureUsage('transcription_complete');
+      
       // Add to transcription store
       addTranscription({
         id: crypto.randomUUID(),
         filename: file.name,
         text: result.text,
         timestamps: result.timestamps,
-        duration: 0, // This would come from audio metadata
+        duration: duration,
         size: file.size,
         date: new Date(),
         status: 'completed'
@@ -94,11 +134,23 @@ function App() {
       setTranscription(result.text);
       setTimestamps(result.timestamps);
     } catch (err) {
+      const error = err as APIError;
+      const errorMessage = error.message || 'Unknown error';
+      trackError(`${provider} - ${errorMessage}`);
+      
+      if (errorMessage.includes('API')) {
+        trackAPIError(
+          provider as 'openai' | 'groq' | 'huggingface',
+          errorMessage,
+          error.status
+        );
+      }
+      
       addNotification({
         type: 'error',
-        message: err instanceof Error ? err.message : 'Failed to transcribe audio'
+        message: errorMessage || 'Failed to transcribe audio'
       });
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setError(errorMessage || 'An error occurred');
     } finally {
       setIsLoading(false);
     }
@@ -106,19 +158,29 @@ function App() {
 
   const handleExport = (format: 'txt' | 'srt' | 'docx' | 'pdf', theme?: ExportTheme) => {
     const filename = currentFile || 'transcription';
-    switch (format) {
-      case 'txt':
-        exportTXT(transcription, timestamps, filename);
-        break;
-      case 'srt':
-        exportSRT(timestamps, filename);
-        break;
-      case 'docx':
-        exportDOCX(transcription, timestamps, filename, theme);
-        break;
-      case 'pdf':
-        exportPDF(transcription, timestamps, filename, theme);
-        break;
+    try {
+      trackFeatureUsage('export_start');
+      const blob = new Blob([transcription], { type: 'text/plain' });
+      trackExport(format, true, blob.size);
+      
+      switch (format) {
+        case 'txt':
+          exportTXT(transcription, timestamps, filename);
+          break;
+        case 'srt':
+          exportSRT(timestamps, filename);
+          break;
+        case 'docx':
+          exportDOCX(transcription, timestamps, filename, theme);
+          break;
+        case 'pdf':
+          exportPDF(transcription, timestamps, filename, theme);
+          break;
+      }
+      trackFeatureUsage('export_complete');
+    } catch (err) {
+      trackExport(format, false);
+      trackError(`Export failed - ${format}: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
   };
 
@@ -143,13 +205,11 @@ function App() {
     if (!deferredPrompt) return;
 
     try {
-      // Show the install prompt
+      trackInstallEvent('prompt_shown');
       const result = await deferredPrompt.prompt();
-      console.log('Install prompt shown');
       
-      // Wait for the user to respond to the prompt
       const { outcome } = await deferredPrompt.userChoice;
-      console.log(`User response to the install prompt: ${outcome}`);
+      trackInstallEvent(outcome === 'accepted' ? 'installed' : 'dismissed');
       
       if (outcome === 'accepted') {
         setDeferredPrompt(null);
@@ -157,6 +217,7 @@ function App() {
       }
     } catch (error) {
       console.error('Error showing install prompt:', error);
+      trackError(`Install prompt error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
