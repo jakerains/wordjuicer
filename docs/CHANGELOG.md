@@ -1,4 +1,21 @@
 ## [Unreleased]
+
+## [0.1.0] - 2024-03-19
+### Added
+- Multi-service integration with OpenAI, Groq, and Huggingface
+- Google Analytics integration for usage tracking and performance monitoring
+- PWA (Progressive Web App) installation support
+- Service-specific error handling and performance tracking
+- Enhanced export functionality with themed document exports
+- Improved user feedback and notifications
+- Return visit tracking and user engagement metrics
+
+### Changed
+- Updated branding from "Text Juicer" to "Word Juicer"
+- Enhanced error handling across all services
+- Improved PDF and DOCX export styling
+- Updated all component boxes to use consistent dark glass morphism styling
+
 ### Fixed
 - Fixed Hugging Face API integration for audio transcription
 - Corrected request format for audio file upload

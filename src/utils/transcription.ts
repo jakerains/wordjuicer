@@ -1,11 +1,13 @@
 import { useModelStore } from '../store/modelStore';
 import { useApiKeyStore } from '../store/apiKeyStore';
 import { useNotificationStore } from '../store/notificationStore';
+import { createRetryWrapper, SERVICE_RETRY_CONFIGS } from './retry';
+import { useHealthStore, shouldAvoidService, type ServiceProvider } from './healthCheck';
+import { useCacheStore, createFileHash, getAudioDuration, type CacheItem } from './cache';
+import { useProgressStore } from './progress';
 
 // Maximum chunk size (5MB)
 const MAX_CHUNK_SIZE = 5 * 1024 * 1024;
-const MAX_RETRIES = 3;
-const INITIAL_RETRY_DELAY = 5000; // 5 seconds
 
 async function* createChunks(file: File) {
   const totalSize = file.size;
@@ -23,45 +25,111 @@ export async function transcribeAudio(
   file: File
 ): Promise<{ text: string; timestamps: Array<{ time: number; text: string }> }> {
   const { selectedModel } = useModelStore.getState();
-  const { apiKey, isValidated, provider } = useApiKeyStore.getState();
+  const { apiKey, isValidated, provider: initialProvider } = useApiKeyStore.getState();
   const addNotification = useNotificationStore.getState().addNotification;
+  const healthStore = useHealthStore.getState();
+  const { getItem, addItem } = useCacheStore.getState();
+  const progressStore = useProgressStore.getState();
+  
   let allResults: { text: string; timestamps: Array<{ time: number; text: string }> }[] = [];
 
   if (!apiKey || !isValidated) {
-    throw new Error(`Please add a valid ${provider === 'huggingface' ? 'Hugging Face' : provider === 'groq' ? 'Groq' : 'OpenAI'} API key in settings`);
+    throw new Error(`Please add a valid ${initialProvider === 'huggingface' ? 'Hugging Face' : initialProvider === 'groq' ? 'Groq' : 'OpenAI'} API key in settings`);
   }
 
-  // Process file in chunks
-  for await (const chunk of createChunks(file)) {
-    let lastError: Error | null = null;
+  // Reset progress tracking
+  progressStore.reset();
 
-    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+  // Check cache first
+  try {
+    const fileHash = await createFileHash(file);
+    const cachedResult = getItem(fileHash);
+    
+    if (cachedResult) {
+      progressStore.initialize(file.name, file.size, 1, cachedResult.provider);
+      progressStore.updateChunk(0, { status: 'completed', progress: 100 });
+      progressStore.setStatus('completed');
+      
+      addNotification({
+        type: 'info',
+        message: 'Using cached transcription'
+      });
+      return {
+        text: cachedResult.text,
+        timestamps: cachedResult.timestamps
+      };
+    }
+  } catch (error) {
+    console.error('Cache lookup failed:', error);
+    // Continue with transcription if cache fails
+  }
+
+  // Check service health before starting
+  await healthStore.checkHealth();
+  
+  // Get the best available service
+  let provider = healthStore.getPreferredService();
+  
+  // If the initial provider is down, notify about switching
+  if (provider !== initialProvider) {
+    addNotification({
+      type: 'warning',
+      message: `${initialProvider} service is unavailable. Switching to ${provider}.`
+    });
+  }
+
+  // Initialize progress tracking
+  const totalChunks = Math.ceil(file.size / MAX_CHUNK_SIZE);
+  progressStore.initialize(file.name, file.size, totalChunks, provider);
+
+  // Create a retry-wrapped version of performTranscription
+  const transcribeWithRetry = createRetryWrapper(
+    async (chunk: Blob, chunkId: number) => {
       try {
-        if (attempt > 0) {
-          const delay = INITIAL_RETRY_DELAY * Math.pow(2, attempt - 1);
-          addNotification({
-            type: 'info',
-            message: `Model busy, retrying in ${delay / 1000} seconds (Attempt ${attempt + 1}/${MAX_RETRIES})`
-          });
-          await new Promise(resolve => setTimeout(resolve, delay));
-        }
-
+        progressStore.updateChunk(chunkId, { status: 'processing', progress: 0 });
         const result = await performTranscription(chunk, apiKey, provider);
-        allResults.push(result);
-        break;
+        progressStore.updateChunk(chunkId, { status: 'completed', progress: 100 });
+        return result;
       } catch (error) {
-        lastError = error as Error;
-        console.error('Transcription error:', error);
-
-        if (!error.toString().includes('Model too busy') || attempt === MAX_RETRIES - 1) {
-          throw error;
+        // If the service fails, check health and potentially switch providers
+        await healthStore.checkHealth(provider);
+        
+        if (shouldAvoidService(provider)) {
+          const newProvider = healthStore.getPreferredService();
+          if (newProvider !== provider) {
+            provider = newProvider;
+            progressStore.setStatus('processing', `Switching to ${provider} service...`);
+            // Retry with new provider
+            return performTranscription(chunk, apiKey, provider);
+          }
         }
+        
+        progressStore.updateChunk(chunkId, { 
+          status: 'error', 
+          error: error instanceof Error ? error.message : 'Unknown error' 
+        });
+        throw error;
       }
+    },
+    SERVICE_RETRY_CONFIGS[provider]
+  );
+
+  // Process file in chunks
+  let chunkId = 0;
+  for await (const chunk of createChunks(file)) {
+    try {
+      const result = await transcribeWithRetry(chunk, chunkId);
+      allResults.push(result);
+      chunkId++;
+    } catch (error) {
+      console.error('Transcription error:', error);
+      progressStore.setStatus('error', error instanceof Error ? error.message : 'Unknown error');
+      throw error;
     }
   }
 
   // Combine results
-  return {
+  const combinedResult = {
     text: allResults.map(r => r.text).join(' '),
     timestamps: allResults.flatMap((r, i) => {
       const timeOffset = i * (MAX_CHUNK_SIZE / file.size) * file.size;
@@ -71,6 +139,28 @@ export async function transcribeAudio(
       }));
     })
   };
+
+  // Cache the result
+  try {
+    const fileHash = await createFileHash(file);
+    const duration = await getAudioDuration(file);
+    
+    addItem(fileHash, {
+      ...combinedResult,
+      fileHash,
+      provider,
+      fileSize: file.size,
+      duration
+    });
+  } catch (error) {
+    console.error('Failed to cache result:', error);
+    // Continue even if caching fails
+  }
+
+  // Mark transcription as completed
+  progressStore.setStatus('completed');
+
+  return combinedResult;
 }
 
 async function performTranscription(
@@ -90,7 +180,6 @@ async function performTranscription(
         'Authorization': `Bearer ${apiKey}`,
         'Accept': 'application/json'
       };
-      // Create a new File with proper name and MIME type
       const audioFile = new File([chunk], 'audio.wav', { 
         type: chunk.type || 'audio/wav'
       });
@@ -125,7 +214,6 @@ async function performTranscription(
         'Accept': 'application/json'
       };
       
-      // Create a new File with proper name and MIME type
       const audioFile = new File([chunk], 'audio.wav', { 
         type: chunk.type || 'audio/wav'
       });
@@ -143,7 +231,6 @@ async function performTranscription(
         'Authorization': `Bearer ${apiKey}`,
         'Accept': 'application/json'
       };
-      // Create a new File with proper name and MIME type
       const audioFile = new File([chunk], 'audio.wav', { 
         type: chunk.type || 'audio/wav'
       });
@@ -158,119 +245,75 @@ async function performTranscription(
   }
 
   console.log(`Making request to ${apiUrl} with provider ${provider}`);
-  console.log('FormData contents:', Array.from(formData.entries()));
   
-  try {
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers,
-      body: formData,
-      mode: 'cors',
-      credentials: 'omit',
-      cache: 'no-store',
-      // Add signal to abort request if it takes too long
-      signal: AbortSignal.timeout(60000), // 60 second timeout for larger files
-    });
+  const response = await fetch(apiUrl, {
+    method: 'POST',
+    headers,
+    body: formData,
+    mode: 'cors',
+    credentials: 'omit',
+    cache: 'no-store',
+    signal: AbortSignal.timeout(60000), // 60 second timeout for larger files
+  });
+  
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('API Error Response:', errorText);
     
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('API Error Response:', errorText);
-      
-      // Handle specific Hugging Face errors
-      if (provider === 'huggingface') {
-        try {
-          const error = JSON.parse(errorText);
-          if (response.status === 503 && error.error?.includes('currently loading')) {
-            const estimatedTime = error.estimated_time || 20;
-            const waitTime = Math.ceil(estimatedTime * 1000); // Convert to milliseconds
-            console.log(`Model loading, waiting for ${waitTime}ms`);
-            await new Promise(resolve => setTimeout(resolve, waitTime));
-            throw new Error('Model too busy'); // This will trigger a retry
-          } else if (response.status === 404) {
-            throw new Error('Model not found. Please check your settings.');
-          }
-        } catch (e) {
-          if (e.message === 'Model too busy') throw e;
-          // If JSON parsing fails, fall through to generic error
-        }
-      }
-      
-      try {
-        const error = JSON.parse(errorText);
-        throw new Error(error.error?.message || error.error || `Failed to transcribe audio (${response.status})`);
-      } catch (e) {
-        if (e.message === 'Model too busy') throw e;
-        throw new Error(`Failed to transcribe audio (${response.status}): ${errorText}`);
-      }
+    try {
+      const error = JSON.parse(errorText);
+      throw new Error(error.error?.message || error.error || `Failed to transcribe audio (${response.status})`);
+    } catch (e) {
+      throw new Error(`Failed to transcribe audio (${response.status}): ${errorText}`);
     }
-    
-    const result = await response.json();
-    console.log('API Response:', result);
-    
-    let timestamps = [];
-    let text = '';
-    
-    switch (provider) {
-      case 'huggingface': {
-        // Handle both new and old response formats
-        if (typeof result === 'string') {
-          text = result;
+  }
+  
+  const result = await response.json();
+  console.log('API Response:', result);
+  
+  let timestamps = [];
+  let text = '';
+  
+  switch (provider) {
+    case 'huggingface': {
+      if (typeof result === 'string') {
+        text = result;
+        timestamps = [{
+          time: 0,
+          text: result.trim()
+        }];
+      } else {
+        text = result.text || '';
+        if (result.chunks) {
+          timestamps = result.chunks.map((chunk: any) => ({
+            time: chunk.timestamp?.[0] || 0,
+            text: chunk.text?.trim() || ''
+          }));
+        } else if (result.segments) {
+          timestamps = result.segments.map((segment: any) => ({
+            time: segment.start || 0,
+            text: segment.text?.trim() || ''
+          }));
+        } else {
           timestamps = [{
             time: 0,
-            text: result.trim()
+            text: text.trim()
           }];
-        } else {
-          text = result.text || '';
-          if (result.chunks) {
-            timestamps = result.chunks.map((chunk: any) => ({
-              time: chunk.timestamp?.[0] || 0,
-              text: chunk.text?.trim() || ''
-            }));
-          } else if (result.segments) {
-            timestamps = result.segments.map((segment: any) => ({
-              time: segment.start || 0,
-              text: segment.text?.trim() || ''
-            }));
-          } else {
-            timestamps = [{
-              time: 0,
-              text: text.trim()
-            }];
-          }
         }
-        break;
       }
-      
-      case 'groq':
-      case 'openai': {
-        text = result.text || '';
-        timestamps = result.segments?.map((segment: any) => ({
-          time: segment.start,
-          text: segment.text
-        })) || [];
-        break;
-      }
+      break;
     }
     
-    // If no timestamps but we have text, create a simple timestamp
-    if (timestamps.length === 0 && text) {
-      timestamps = [{
-        time: 0,
-        text: text
-      }];
+    case 'groq':
+    case 'openai': {
+      text = result.text || '';
+      timestamps = result.segments?.map((segment: any) => ({
+        time: segment.start,
+        text: segment.text
+      })) || [];
+      break;
     }
-    
-    // If no text but we have timestamps, concatenate them
-    if (!text && timestamps.length > 0) {
-      text = timestamps.map(t => t.text).join(' ');
-    }
-    
-    return {
-      text,
-      timestamps
-    };
-  } catch (error) {
-    console.error('Transcription error:', error);
-    throw error;
   }
+  
+  return { text, timestamps };
 }
