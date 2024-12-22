@@ -23,6 +23,7 @@ export function InstallPWA({ deferredPrompt, onInstall, onDismiss }: InstallPWAP
       <button
         onClick={onDismiss}
         className="absolute top-4 right-4 p-2 hover:bg-white/10 rounded-full transition-colors"
+        aria-label="Close install prompt"
       >
         <X className="w-5 h-5 text-white/70" />
       </button>
@@ -33,7 +34,7 @@ export function InstallPWA({ deferredPrompt, onInstall, onDismiss }: InstallPWAP
         </div>
         <div className="flex-1">
           <h3 className="text-lg font-semibold text-white mb-2">
-            Install Text Juicer
+            Install Word Juicer
           </h3>
           <p className="text-white/90 text-sm mb-4">
             Add to your home screen for offline access and a native app experience

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Icon Generator</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+    <canvas id="canvas" width="192" height="192" style="display:none;"></canvas>
+    <img id="source" src="/juicericons/icon-1024.png" style="display:none;" crossorigin="anonymous">
+    <a id="download" download="icon-192.png">Download 192x192 Icon</a>
+    <script>
+        window.onload = function() {
+            const canvas = document.getElementById('canvas');
+            const ctx = canvas.getContext('2d');
+            const img = document.getElementById('source');
+            const download = document.getElementById('download');
+            
+            img.onload = function() {
+                ctx.drawImage(img, 0, 0, 192, 192);
+                download.href = canvas.toDataURL('image/png');
+                download.click();
+            };
+        };
+    </script>
+</body>
+</html> 

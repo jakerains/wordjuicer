@@ -46,7 +46,7 @@ export function Sidebar({ activeView, setActiveView }: SidebarProps) {
               `}
             >
               <item.icon className="w-5 h-5" />
-              <span className="hidden lg:inline">{item.label}</span>
+              <span>{item.label}</span>
             </button>
           ))}
         </nav>
@@ -68,7 +68,7 @@ export function Sidebar({ activeView, setActiveView }: SidebarProps) {
               `}
             >
               <item.icon className="w-5 h-5" />
-              <span className="hidden lg:inline text-sm whitespace-nowrap">{item.label}</span>
+              <span className="text-sm whitespace-nowrap">{item.label}</span>
             </button>
           ))}
         </div>

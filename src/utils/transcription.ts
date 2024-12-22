@@ -81,13 +81,40 @@ async function performTranscription(
   const formData = new FormData();
   
   let apiUrl: string;
-  let headers: Record<string, string> = { Authorization: `Bearer ${apiKey}` };
+  let headers: Record<string, string> = {};
   
   switch (provider) {
     case 'huggingface': {
       apiUrl = 'https://api-inference.huggingface.co/models/openai/whisper-large-v3-turbo';
-      headers['Content-Type'] = 'audio/wav';
-      formData.append('file', chunk);
+      headers = {
+        'Authorization': `Bearer ${apiKey}`,
+        'Accept': 'application/json'
+      };
+      // Create a new File with proper name and MIME type
+      const audioFile = new File([chunk], 'audio.wav', { 
+        type: chunk.type || 'audio/wav'
+      });
+      formData.append('file', audioFile);
+      
+      // Required parameters for long-form audio
+      formData.append('wait_for_model', 'true');
+      formData.append('return_timestamps', 'true');
+      
+      // Optional parameters for better transcription
+      formData.append('chunk_length_s', '30');
+      formData.append('stride_length_s', '5');
+      formData.append('language', 'en');
+      formData.append('task', 'transcribe');
+      formData.append('return_segments', 'true');
+      
+      // Performance parameters
+      formData.append('batch_size', '1');
+      formData.append('num_beams', '1');
+      formData.append('temperature', '0');
+      formData.append('compression_ratio_threshold', '2.4');
+      formData.append('logprob_threshold', '-1');
+      formData.append('no_speech_threshold', '0.6');
+      formData.append('condition_on_previous_text', 'false');
       break;
     }
       
@@ -98,8 +125,10 @@ async function performTranscription(
         'Accept': 'application/json'
       };
       
-      // Create a new File with a proper name and type
-      const audioFile = new File([chunk], 'audio.wav', { type: chunk.type || 'audio/wav' });
+      // Create a new File with proper name and MIME type
+      const audioFile = new File([chunk], 'audio.wav', { 
+        type: chunk.type || 'audio/wav'
+      });
       formData.append('file', audioFile);
       formData.append('model', 'whisper-large-v3-turbo');
       formData.append('response_format', 'verbose_json');
@@ -110,6 +139,10 @@ async function performTranscription(
       
     case 'openai': {
       apiUrl = 'https://api.openai.com/v1/audio/transcriptions';
+      headers = {
+        'Authorization': `Bearer ${apiKey}`,
+        'Accept': 'application/json'
+      };
       // Create a new File with proper name and MIME type
       const audioFile = new File([chunk], 'audio.wav', { 
         type: chunk.type || 'audio/wav'
@@ -117,10 +150,6 @@ async function performTranscription(
       formData.append('file', audioFile);
       formData.append('model', 'whisper-1');
       formData.append('response_format', 'verbose_json');
-      // Set proper headers for multipart form data
-      headers = {
-        'Authorization': `Bearer ${apiKey}`
-      };
       break;
     }
       
@@ -131,73 +160,117 @@ async function performTranscription(
   console.log(`Making request to ${apiUrl} with provider ${provider}`);
   console.log('FormData contents:', Array.from(formData.entries()));
   
-  const response = await fetch(apiUrl, {
-    method: 'POST',
-    headers,
-    body: formData
-  });
-  
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Failed to parse error response' }));
-    console.error('API Error:', error);
-    const errorMessage = error.error?.message || error.error || `Failed to transcribe audio (${response.status})`;
-    throw new Error(errorMessage);
-  }
-  
-  const result = await response.json();
-  console.log('API Response:', result);
-  
-  let timestamps = [];
-  let text = '';
-  
-  switch (provider) {
-    case 'huggingface': {
-      text = result.text || '';
-      if (result.chunks) {
-        timestamps = result.chunks.map((chunk: any) => ({
-          time: chunk.timestamp[0],
-          text: chunk.text.trim()
-        }));
-      } else if (result.segments) {
-        timestamps = result.segments.map((segment: any) => ({
-          time: segment.start,
-          text: segment.text.trim()
-        }));
-      } else {
-        timestamps = [{
-          time: 0,
-          text: text.trim()
-        }];
+  try {
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers,
+      body: formData,
+      mode: 'cors',
+      credentials: 'omit',
+      cache: 'no-store',
+      // Add signal to abort request if it takes too long
+      signal: AbortSignal.timeout(60000), // 60 second timeout for larger files
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('API Error Response:', errorText);
+      
+      // Handle specific Hugging Face errors
+      if (provider === 'huggingface') {
+        try {
+          const error = JSON.parse(errorText);
+          if (response.status === 503 && error.error?.includes('currently loading')) {
+            const estimatedTime = error.estimated_time || 20;
+            const waitTime = Math.ceil(estimatedTime * 1000); // Convert to milliseconds
+            console.log(`Model loading, waiting for ${waitTime}ms`);
+            await new Promise(resolve => setTimeout(resolve, waitTime));
+            throw new Error('Model too busy'); // This will trigger a retry
+          } else if (response.status === 404) {
+            throw new Error('Model not found. Please check your settings.');
+          }
+        } catch (e) {
+          if (e.message === 'Model too busy') throw e;
+          // If JSON parsing fails, fall through to generic error
+        }
       }
-      break;
+      
+      try {
+        const error = JSON.parse(errorText);
+        throw new Error(error.error?.message || error.error || `Failed to transcribe audio (${response.status})`);
+      } catch (e) {
+        if (e.message === 'Model too busy') throw e;
+        throw new Error(`Failed to transcribe audio (${response.status}): ${errorText}`);
+      }
     }
     
-    case 'groq':
-    case 'openai': {
-      text = result.text || '';
-      timestamps = result.segments?.map((segment: any) => ({
-        time: segment.start,
-        text: segment.text
-      })) || [];
-      break;
+    const result = await response.json();
+    console.log('API Response:', result);
+    
+    let timestamps = [];
+    let text = '';
+    
+    switch (provider) {
+      case 'huggingface': {
+        // Handle both new and old response formats
+        if (typeof result === 'string') {
+          text = result;
+          timestamps = [{
+            time: 0,
+            text: result.trim()
+          }];
+        } else {
+          text = result.text || '';
+          if (result.chunks) {
+            timestamps = result.chunks.map((chunk: any) => ({
+              time: chunk.timestamp?.[0] || 0,
+              text: chunk.text?.trim() || ''
+            }));
+          } else if (result.segments) {
+            timestamps = result.segments.map((segment: any) => ({
+              time: segment.start || 0,
+              text: segment.text?.trim() || ''
+            }));
+          } else {
+            timestamps = [{
+              time: 0,
+              text: text.trim()
+            }];
+          }
+        }
+        break;
+      }
+      
+      case 'groq':
+      case 'openai': {
+        text = result.text || '';
+        timestamps = result.segments?.map((segment: any) => ({
+          time: segment.start,
+          text: segment.text
+        })) || [];
+        break;
+      }
     }
+    
+    // If no timestamps but we have text, create a simple timestamp
+    if (timestamps.length === 0 && text) {
+      timestamps = [{
+        time: 0,
+        text: text
+      }];
+    }
+    
+    // If no text but we have timestamps, concatenate them
+    if (!text && timestamps.length > 0) {
+      text = timestamps.map(t => t.text).join(' ');
+    }
+    
+    return {
+      text,
+      timestamps
+    };
+  } catch (error) {
+    console.error('Transcription error:', error);
+    throw error;
   }
-  
-  // If no timestamps but we have text, create a simple timestamp
-  if (timestamps.length === 0 && text) {
-    timestamps = [{
-      time: 0,
-      text: text
-    }];
-  }
-  
-  // If no text but we have timestamps, concatenate them
-  if (!text && timestamps.length > 0) {
-    text = timestamps.map(t => t.text).join(' ');
-  }
-  
-  return {
-    text,
-    timestamps
-  };
 }

@@ -11,14 +11,14 @@ interface TranscriptionViewSelectorProps {
 
 export function TranscriptionViewSelector({ currentView, onViewChange }: TranscriptionViewSelectorProps) {
   return (
-    <div className="flex gap-2 bg-white/10 backdrop-blur-md rounded-[16px] p-2">
+    <div className="flex gap-1 sm:gap-2 bg-white/10 backdrop-blur-md rounded-[16px] p-1 sm:p-2">
       <GlassButton
         variant={currentView === 'segments' ? 'primary' : 'dark'}
         size="sm"
         onClick={() => onViewChange('segments')}
         icon={<Clock className="w-4 h-4" />}
       >
-        Segments
+        <span className="text-xs sm:text-sm">Segments</span>
       </GlassButton>
       
       <GlassButton
@@ -27,7 +27,7 @@ export function TranscriptionViewSelector({ currentView, onViewChange }: Transcr
         onClick={() => onViewChange('transcript')}
         icon={<AlignLeft className="w-4 h-4" />}
       >
-        Transcript
+        <span className="text-xs sm:text-sm">Transcript</span>
       </GlassButton>
       
       <GlassButton
@@ -36,7 +36,7 @@ export function TranscriptionViewSelector({ currentView, onViewChange }: Transcr
         onClick={() => onViewChange('compact')}
         icon={<List className="w-4 h-4" />}
       >
-        Compact
+        <span className="text-xs sm:text-sm">Compact</span>
       </GlassButton>
     </div>
   );

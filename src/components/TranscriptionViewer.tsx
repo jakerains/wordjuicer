@@ -35,18 +35,18 @@ export function TranscriptionViewer({ transcription, timestamps }: Transcription
           <div 
             key={index} 
             className={cn(
-              "group relative rounded-lg p-4 transition-all duration-300",
+              "group relative rounded-lg p-3 sm:p-4 transition-all duration-300",
               "bg-gray-800/40 hover:bg-gray-800/60",
               "shadow-sm hover:shadow-md border border-gray-700/30"
             )}
           >
-            <div className="flex items-center gap-2 mb-2">
+            <div className="flex items-center gap-2 mb-1 sm:mb-2">
               <Clock className="w-4 h-4 text-[#A2AD1E]" />
-              <span className="text-sm font-medium text-[#A2AD1E]">
+              <span className="text-xs sm:text-sm font-medium text-[#A2AD1E]">
                 {formatTimestamp(item.time)}
               </span>
             </div>
-            <p className="text-gray-200 leading-relaxed tracking-wide">
+            <p className="text-sm sm:text-base text-gray-200 leading-relaxed tracking-wide">
               {item.text}
             </p>
           </div>
@@ -55,7 +55,7 @@ export function TranscriptionViewer({ transcription, timestamps }: Transcription
       case 'transcript':
         return (
           <div className="space-y-4">
-            <p className="text-gray-200 leading-relaxed tracking-wide whitespace-pre-wrap">
+            <p className="text-sm sm:text-base text-gray-200 leading-relaxed tracking-wide whitespace-pre-wrap">
               {timestamps.map(t => t.text).join('\n\n')}
             </p>
           </div>
@@ -65,12 +65,12 @@ export function TranscriptionViewer({ transcription, timestamps }: Transcription
         return timestamps.map((item, index) => (
           <div 
             key={index}
-            className="flex items-start gap-4 py-2 border-b border-gray-700/30 last:border-0"
+            className="flex items-start gap-2 sm:gap-4 py-2 border-b border-gray-700/30 last:border-0"
           >
-            <span className="text-sm font-medium text-[#A2AD1E] whitespace-nowrap">
+            <span className="text-xs sm:text-sm font-medium text-[#A2AD1E] whitespace-nowrap">
               {formatTimestamp(item.time)}
             </span>
-            <p className="text-gray-200">
+            <p className="text-sm sm:text-base text-gray-200">
               {item.text}
             </p>
           </div>
@@ -79,12 +79,12 @@ export function TranscriptionViewer({ transcription, timestamps }: Transcription
   };
 
   return timestamps.length > 0 ? (
-    <div className="w-full max-w-4xl bg-gray-900/75 backdrop-blur-md rounded-[20px] border border-gray-700/30 shadow-xl p-4 lg:p-8">
-      <div className="flex justify-between items-center gap-4 mb-6">
+    <div className="w-full max-w-4xl bg-gray-900/75 backdrop-blur-md rounded-[20px] border border-gray-700/30 shadow-xl p-3 sm:p-4 lg:p-8">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-4 mb-4 sm:mb-6">
         <h2 className="text-lg lg:text-xl font-semibold text-gray-100">
           Transcription Result
         </h2>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
           <TranscriptionViewSelector
             currentView={currentView}
             onViewChange={setCurrentView}
@@ -93,19 +93,18 @@ export function TranscriptionViewer({ transcription, timestamps }: Transcription
             variant="secondary"
             size="sm"
             onClick={handleCopyToClipboard}
-            icon={<Copy className="w-4 h-4" />}
-          >
-            <span className="hidden sm:inline">Copy</span>
-          </GlassButton>
+            icon={<Copy className="w-5 h-5" />}
+            className="p-2 flex items-center justify-center"
+          />
         </div>
       </div>
       
-      <div className="h-[500px] overflow-y-auto rounded-[16px] bg-gray-800/60 backdrop-blur-sm p-6 border border-gray-700/30 space-y-6">
+      <div className="h-[400px] sm:h-[500px] overflow-y-auto rounded-[16px] bg-gray-800/60 backdrop-blur-sm p-3 sm:p-6 border border-gray-700/30 space-y-3 sm:space-y-6">
         {renderContent()}
       </div>
     </div>
   ) : (
-    <div className="w-full max-w-4xl bg-gray-900/75 backdrop-blur-md rounded-[20px] border border-gray-700/30 shadow-xl p-8">
+    <div className="w-full max-w-4xl bg-gray-900/75 backdrop-blur-md rounded-[20px] border border-gray-700/30 shadow-xl p-4 sm:p-8">
       <div className="flex items-center justify-center h-[200px]">
         <p className="text-gray-400 text-lg">No transcription data available</p>
       </div>

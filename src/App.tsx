@@ -11,12 +11,14 @@ import { NotificationCenter } from './components/NotificationCenter';
 import { Sidebar } from './components/Sidebar';
 import { InstallPWA } from './components/InstallPWA';
 import { exportTXT, exportSRT, exportDOCX, exportPDF } from './utils/exportFormats';
+import type { ExportTheme } from './components/ExportStyleSelector';
 import { transcribeAudio } from './utils/transcription';
-import { Settings as SettingsIcon } from 'lucide-react';
+import { Settings as SettingsIcon, Menu, FileText } from 'lucide-react';
 import { useTranscriptionStore } from './store/transcriptionStore';
 import { useNotificationStore } from './store/notificationStore';
 import { initializeDatabase } from './db';
 import { getFormattedVersion } from './utils/version';
+import { GlassButton } from './components/ui/GlassButton';
 
 function App() {
   const [transcription, setTranscription] = useState('');
@@ -26,6 +28,7 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [activeView, setActiveView] = useState<'dashboard' | 'transcribe' | 'history' | 'settings' | 'help'>('transcribe');
   const [currentFile, setCurrentFile] = useState<string>('');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const resetTranscription = () => {
     setTranscription('');
@@ -123,9 +126,10 @@ function App() {
   const [showInstallBanner, setShowInstallBanner] = useState(true);
 
   useEffect(() => {
-    const handleBeforeInstallPrompt = (e: Event) => {
-      e.preventDefault();
+    const handleBeforeInstallPrompt = (e: any) => {
+      // Don't prevent default - let the browser show its native install prompt
       setDeferredPrompt(e);
+      setShowInstallBanner(true);
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -138,12 +142,21 @@ function App() {
   const handleInstall = async () => {
     if (!deferredPrompt) return;
 
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    
-    if (outcome === 'accepted') {
-      setDeferredPrompt(null);
-      setShowInstallBanner(false);
+    try {
+      // Show the install prompt
+      const result = await deferredPrompt.prompt();
+      console.log('Install prompt shown');
+      
+      // Wait for the user to respond to the prompt
+      const { outcome } = await deferredPrompt.userChoice;
+      console.log(`User response to the install prompt: ${outcome}`);
+      
+      if (outcome === 'accepted') {
+        setDeferredPrompt(null);
+        setShowInstallBanner(false);
+      }
+    } catch (error) {
+      console.error('Error showing install prompt:', error);
     }
   };
 
@@ -155,24 +168,57 @@ function App() {
       </div>
 
       <div className="flex min-h-screen relative">
+        {/* Desktop Sidebar */}
         <div className="hidden lg:block w-64 fixed inset-y-0 left-0 z-50">
           <Sidebar activeView={activeView} setActiveView={setActiveView} />
         </div>
 
+        {/* Mobile Sidebar */}
+        {isMobileMenuOpen && (
+          <div className="lg:hidden fixed inset-0 z-50">
+            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)} />
+            <div className="absolute left-0 top-0 bottom-0 w-64 z-50">
+              <Sidebar activeView={activeView} setActiveView={(view) => {
+                setActiveView(view);
+                setIsMobileMenuOpen(false);
+              }} />
+            </div>
+          </div>
+        )}
+
         <div className="flex-1 lg:ml-64 min-h-screen flex flex-col">
           <main className="flex-1 p-4 lg:p-8">
-          <div className="flex items-center justify-between mb-8">
-            <h1 className="text-2xl font-semibold text-white">
-              {activeView.charAt(0).toUpperCase() + activeView.slice(1)}
-            </h1>
-            <div className="flex items-center gap-4">
-              <NotificationCenter />
+          <div className="flex flex-col mb-8">
+            <div className="flex items-center justify-between mb-2">
               <button 
-                onClick={() => activeView === 'settings' ? setActiveView('transcribe') : setActiveView('settings')}
-                className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+                onClick={() => setIsMobileMenuOpen(true)}
+                className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors lg:hidden"
+                aria-label="Open Menu"
               >
-                <SettingsIcon className="w-5 h-5 text-white/70 animate-gear" />
+                <Menu className="w-5 h-5 text-white/70" />
               </button>
+              <div className="flex items-center gap-4">
+                <NotificationCenter />
+                <button 
+                  onClick={() => activeView === 'settings' ? setActiveView('transcribe') : setActiveView('settings')}
+                  className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+                  aria-label="Toggle Settings"
+                >
+                  <SettingsIcon className="w-5 h-5 text-white/70 animate-gear" />
+                </button>
+              </div>
+            </div>
+            <div className="flex flex-col items-center">
+              <img 
+                src="/juicerbanner-wide.png" 
+                alt="Word Juicer" 
+                className="h-32 w-auto lg:hidden mb-6"
+              />
+              {activeView !== 'transcribe' && (
+                <h1 className="text-xl font-medium text-white/80">
+                  {activeView.charAt(0).toUpperCase() + activeView.slice(1)}
+                </h1>
+              )}
             </div>
           </div>
 
@@ -196,14 +242,18 @@ function App() {
                 
                 {transcription && !isLoading && (
                   <div className="space-y-6">
-                    <div className="flex justify-center items-center gap-4">
+                    <div className="flex items-center justify-between gap-2 sm:gap-4">
+                      <div className="bg-white/10 backdrop-blur-md rounded-[16px] p-1 sm:p-2">
+                        <GlassButton
+                          variant="dark"
+                          size="sm"
+                          onClick={resetTranscription}
+                          icon={<FileText className="w-4 h-4" />}
+                        >
+                          <span className="text-xs sm:text-sm">New</span>
+                        </GlassButton>
+                      </div>
                       <ExportOptions onExport={handleExport} disabled={isLoading} />
-                      <button
-                        onClick={resetTranscription}
-                        className="flex items-center gap-2 px-6 py-3 rounded-[12px] bg-white/10 backdrop-blur-sm text-white border border-white/20 hover:bg-white/20 shadow-lg hover:shadow-xl transition-all duration-300"
-                      >
-                        New Transcription
-                      </button>
                     </div>
                     <TranscriptionViewer transcription={transcription} timestamps={timestamps} />
                   </div>
@@ -211,7 +261,7 @@ function App() {
               </div>
             )}
             {activeView === 'history' && <History />}
-            {activeView === 'settings' && <Settings />}
+            {activeView === 'settings' && <Settings setActiveView={setActiveView} />}
             {activeView === 'help' && <Help />}
           </div>
           </main>
@@ -219,7 +269,7 @@ function App() {
             Made with <span className="text-[#E1C94B]">♥</span> by{' '}
             <span className="space-x-1">
               <a
-                href="https://github.com/jakerains"
+                href="https://www.x.com/jakerains"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-white hover:text-[#E1C94B] transition-colors">

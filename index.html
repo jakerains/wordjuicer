@@ -3,9 +3,11 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/juicericons/icon-180.png" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/juicericons/icon-180.png" />
-    <link rel="apple-touch-icon" href="/juicericons/icon-192.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/juicericons/icon-60@3x.png" />
+    <link rel="apple-touch-icon" sizes="120x120" href="/juicericons/icon-60@2x.png" />
+    <link rel="apple-touch-icon" sizes="167x167" href="/juicericons/icon-83.5@2x.png" />
+    <link rel="apple-touch-icon" sizes="152x152" href="/juicericons/icon-76@2x.png" />
+    <link rel="apple-touch-icon" sizes="76x76" href="/juicericons/icon-76.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     
     <!-- Primary Meta Tags -->
@@ -31,10 +33,9 @@
     <meta name="twitter:creator" content="@jakerains">
     
     <!-- App Capability Meta Tags -->
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="mobile-web-app-capable" content="yes">
-    <meta name="theme-color" content="#F96C57" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="theme-color" content="#A2AD1E" />
     
     <!-- Additional SEO Meta Tags -->
     <meta name="application-name" content="Word Juicer">
@@ -97,16 +98,9 @@
           renderer: 'svg',
           loop: true,
           autoplay: true,
-          path: '/Animation - loading.json' // Initial loading animation
+          path: '/Animation - loading.json'
         });
       })();
-
-      // Initialize service worker
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js').catch(console.error);
-        });
-      }
     </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>

@@ -1,6 +1,6 @@
 import React, { useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { Upload, Server } from 'lucide-react';
+import { Upload, Server, FileAudio } from 'lucide-react';
 import { useApiKeyStore, ApiProvider } from '../store/apiKeyStore';
 import { GlassButton } from './ui/GlassButton';
 
@@ -9,9 +9,27 @@ interface DropZoneProps {
   isLoading: boolean;
 }
 
+// Hook to detect mobile devices
+function useIsMobile() {
+  const [isMobile, setIsMobile] = React.useState(false);
+
+  React.useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  return isMobile;
+}
+
 export function DropZone({ onFileSelect, isLoading }: DropZoneProps) {
   const { provider, setProvider } = useApiKeyStore();
   const [validatedProviders, setValidatedProviders] = React.useState<ApiProvider[]>([]);
+  const isMobile = useIsMobile();
 
   React.useEffect(() => {
     // Check which providers have valid keys
@@ -56,15 +74,31 @@ export function DropZone({ onFileSelect, isLoading }: DropZoneProps) {
       >
         <input {...getInputProps()} />
         <div className="flex flex-col items-center text-center">
-          <Upload 
-            className={`w-16 h-16 mb-6 ${isDragActive ? 'text-[#F96C57]' : 'text-white/70'}`}
-          />
-          <p className="text-2xl font-medium text-white mb-3">
-            {isDragActive ? 'Drop your audio file here' : 'Drag & drop your audio file'}
-          </p>
-          <p className="text-base text-white/70">
-            or click to browse (MP3, WAV, M4A, OGG)
-          </p>
+          {isMobile ? (
+            <>
+              <FileAudio 
+                className={`w-16 h-16 mb-6 ${isDragActive ? 'text-[#F96C57]' : 'text-white/70'}`}
+              />
+              <p className="text-2xl font-medium text-white mb-3">
+                Tap to select audio
+              </p>
+              <p className="text-base text-white/70">
+                MP3, WAV, M4A, OGG supported
+              </p>
+            </>
+          ) : (
+            <>
+              <Upload 
+                className={`w-16 h-16 mb-6 ${isDragActive ? 'text-[#F96C57]' : 'text-white/70'}`}
+              />
+              <p className="text-2xl font-medium text-white mb-3">
+                {isDragActive ? 'Drop your audio file here' : 'Drag & drop your audio file'}
+              </p>
+              <p className="text-base text-white/70">
+                or click to browse (MP3, WAV, M4A, OGG)
+              </p>
+            </>
+          )}
         </div>
       </div>
       
