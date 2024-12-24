@@ -4,9 +4,7 @@ import { GlassButton } from './ui/GlassButton';
 import { useTranscriptionStore } from '../store/transcriptionStore';
 import { useApiKeyStore, ApiProvider } from '../store/apiKeyStore';
 import { useNotificationStore } from '../store/notificationStore';
-import { ServiceHealth } from './ServiceHealth';
 import { CacheManager } from './CacheManager';
-import { initializeHealthChecks } from '../utils/healthCheck';
 
 interface SettingsProps {
   setActiveView: (view: 'dashboard' | 'transcribe' | 'history' | 'settings' | 'help') => void;
@@ -110,11 +108,6 @@ export function Settings({ setActiveView }: SettingsProps) {
     setInputKey('');
   };
 
-  // Initialize health checks
-  React.useEffect(() => {
-    initializeHealthChecks();
-  }, []);
-
   return (
     <div className="max-w-2xl space-y-6">
       <div className="bg-gray-900/75 backdrop-blur-md rounded-[20px] p-6 border border-gray-700/30 shadow-xl">
@@ -126,8 +119,6 @@ export function Settings({ setActiveView }: SettingsProps) {
         </div>
 
         <div className="space-y-6">
-          <ServiceHealth />
-
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
               API Provider

@@ -2,7 +2,6 @@ import { useModelStore } from '../store/modelStore';
 import { useApiKeyStore } from '../store/apiKeyStore';
 import { useNotificationStore } from '../store/notificationStore';
 import { createRetryWrapper, SERVICE_RETRY_CONFIGS } from './retry';
-import { useHealthStore, shouldAvoidService, type ServiceProvider } from './healthCheck';
 import { useCacheStore, createFileHash, getAudioDuration, type CacheItem } from './cache';
 import { useProgressStore } from './progress';
 
@@ -25,16 +24,15 @@ export async function transcribeAudio(
   file: File
 ): Promise<{ text: string; timestamps: Array<{ time: number; text: string }> }> {
   const { selectedModel } = useModelStore.getState();
-  const { apiKey, isValidated, provider: initialProvider } = useApiKeyStore.getState();
+  const { apiKey, isValidated, provider } = useApiKeyStore.getState();
   const addNotification = useNotificationStore.getState().addNotification;
-  const healthStore = useHealthStore.getState();
   const { getItem, addItem } = useCacheStore.getState();
   const progressStore = useProgressStore.getState();
   
   let allResults: { text: string; timestamps: Array<{ time: number; text: string }> }[] = [];
 
   if (!apiKey || !isValidated) {
-    throw new Error(`Please add a valid ${initialProvider === 'huggingface' ? 'Hugging Face' : initialProvider === 'groq' ? 'Groq' : 'OpenAI'} API key in settings`);
+    throw new Error(`Please add a valid ${provider === 'huggingface' ? 'Hugging Face' : provider === 'groq' ? 'Groq' : 'OpenAI'} API key in settings`);
   }
 
   // Reset progress tracking
@@ -46,7 +44,7 @@ export async function transcribeAudio(
     const cachedResult = getItem(fileHash);
     
     if (cachedResult) {
-      progressStore.initialize(file.name, file.size, 1, cachedResult.provider);
+      progressStore.initialize(file.name, file.size, 1, provider);
       progressStore.updateChunk(0, { status: 'completed', progress: 100 });
       progressStore.setStatus('completed');
       
@@ -64,20 +62,6 @@ export async function transcribeAudio(
     // Continue with transcription if cache fails
   }
 
-  // Check service health before starting
-  await healthStore.checkHealth();
-  
-  // Get the best available service
-  let provider = healthStore.getPreferredService();
-  
-  // If the initial provider is down, notify about switching
-  if (provider !== initialProvider) {
-    addNotification({
-      type: 'warning',
-      message: `${initialProvider} service is unavailable. Switching to ${provider}.`
-    });
-  }
-
   // Initialize progress tracking
   const totalChunks = Math.ceil(file.size / MAX_CHUNK_SIZE);
   progressStore.initialize(file.name, file.size, totalChunks, provider);
@@ -91,19 +75,6 @@ export async function transcribeAudio(
         progressStore.updateChunk(chunkId, { status: 'completed', progress: 100 });
         return result;
       } catch (error) {
-        // If the service fails, check health and potentially switch providers
-        await healthStore.checkHealth(provider);
-        
-        if (shouldAvoidService(provider)) {
-          const newProvider = healthStore.getPreferredService();
-          if (newProvider !== provider) {
-            provider = newProvider;
-            progressStore.setStatus('processing', `Switching to ${provider} service...`);
-            // Retry with new provider
-            return performTranscription(chunk, apiKey, provider);
-          }
-        }
-        
         progressStore.updateChunk(chunkId, { 
           status: 'error', 
           error: error instanceof Error ? error.message : 'Unknown error' 
@@ -249,71 +220,46 @@ async function performTranscription(
   const response = await fetch(apiUrl, {
     method: 'POST',
     headers,
-    body: formData,
-    mode: 'cors',
-    credentials: 'omit',
-    cache: 'no-store',
-    signal: AbortSignal.timeout(60000), // 60 second timeout for larger files
+    body: formData
   });
-  
+
   if (!response.ok) {
-    const errorText = await response.text();
-    console.error('API Error Response:', errorText);
-    
+    let errorMessage = `API request failed with status ${response.status}`;
     try {
-      const error = JSON.parse(errorText);
-      throw new Error(error.error?.message || error.error || `Failed to transcribe audio (${response.status})`);
-    } catch (e) {
-      throw new Error(`Failed to transcribe audio (${response.status}): ${errorText}`);
+      const errorData = await response.json();
+      errorMessage = errorData.error || errorMessage;
+    } catch {
+      // If parsing error response fails, use default message
     }
+    throw new Error(errorMessage);
   }
-  
+
   const result = await response.json();
-  console.log('API Response:', result);
   
-  let timestamps = [];
-  let text = '';
-  
+  // Process response based on provider
   switch (provider) {
     case 'huggingface': {
-      if (typeof result === 'string') {
-        text = result;
-        timestamps = [{
-          time: 0,
-          text: result.trim()
-        }];
-      } else {
-        text = result.text || '';
-        if (result.chunks) {
-          timestamps = result.chunks.map((chunk: any) => ({
-            time: chunk.timestamp?.[0] || 0,
-            text: chunk.text?.trim() || ''
-          }));
-        } else if (result.segments) {
-          timestamps = result.segments.map((segment: any) => ({
-            time: segment.start || 0,
-            text: segment.text?.trim() || ''
-          }));
-        } else {
-          timestamps = [{
-            time: 0,
-            text: text.trim()
-          }];
-        }
-      }
-      break;
+      return {
+        text: result.text || '',
+        timestamps: result.chunks?.map((chunk: any) => ({
+          time: chunk.timestamp[0],
+          text: chunk.text
+        })) || []
+      };
     }
-    
+      
     case 'groq':
     case 'openai': {
-      text = result.text || '';
-      timestamps = result.segments?.map((segment: any) => ({
-        time: segment.start,
-        text: segment.text
-      })) || [];
-      break;
+      return {
+        text: result.text || '',
+        timestamps: result.segments?.map((segment: any) => ({
+          time: segment.start,
+          text: segment.text
+        })) || []
+      };
     }
+      
+    default:
+      throw new Error('Invalid provider');
   }
-  
-  return { text, timestamps };
 }
