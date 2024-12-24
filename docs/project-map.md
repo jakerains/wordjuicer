@@ -1,77 +1,105 @@
-# Text Juicer Project Map
+# Project Map <!-- markmap: fold -->
 
-## Overview <!-- markmap: fold -->
-- Modern web-based audio transcription application
-- Built with React, TypeScript, and Vite
-- Features glassmorphism UI design
+## Core Features
+### Audio Transcription
+- Live transcription with real-time processing
+- File-based transcription with chunking
+- Multi-provider support (OpenAI, Groq, Hugging Face)
+- Progress tracking and status updates
 
-## Technical Architecture <!-- markmap: fold -->
+### Data Management
+- Transcription history
+- Cache management
+- Export/Import functionality
+- Dashboard interface
+
+### Settings
+- API key management
+- Provider selection
+- Cache configuration
+- PWA installation
+
+## Technical Architecture
 ### Frontend
 - React with TypeScript
-- Vite for build tooling
-- PWA support with vite-plugin-pwa
-- Service worker for offline functionality
 - Tailwind CSS for styling
-- Lucide React for icons
+- Glass morphism design system
+- Responsive layout
+
+### State Management
+- Zustand stores
+  - API key store
+  - Transcription store
+  - Progress store
+  - Cache store
+  - Notification store
+
+### Audio Processing
+- Chunk-based processing (5MB chunks)
+- WebAudio API for live recording
+- Blob handling for file uploads
+- Format validation and conversion
 
 ### API Integration
-- Hugging Face Inference API
-- Whisper Large V3 Turbo model
-- Environment variable configuration
+#### Providers
+- OpenAI Whisper
+  - Endpoint: https://api.openai.com/v1/audio/transcriptions
+  - Model: whisper-1
+- Groq
+  - Endpoint: https://api.groq.com/openai/v1/audio/transcriptions
+  - Model: whisper-large-v3-turbo
+- Hugging Face
+  - Endpoint: https://api-inference.huggingface.co/models/openai/whisper-large-v3-turbo
+  - Model: whisper-large-v3-turbo
 
-## Components <!-- markmap: fold -->
-### Core Components
-- App.tsx (Main application container)
-- DropZone (File upload interface)
-- TranscriptionViewer (Results display)
-- ExportOptions (File export functionality)
-- Sidebar (Navigation menu)
+### Caching System
+- IndexedDB storage
+- File hash-based caching
+- Automatic cache management
+- Cache size monitoring
 
-### Utilities
-- transcription.ts (API integration)
-- Environment variable handling
+### Error Handling
+- Retry mechanism for failed requests
+- Graceful error recovery
+- User-friendly error messages
+- Progress status updates
 
-## Features <!-- markmap: fold -->
-### Audio Transcription
-- Drag and drop file upload
-- Multiple audio format support
-- Real-time processing feedback
-
-### Export Capabilities
-- TXT format export
-- SRT format export
-- DOCX format export
-
-### User Interface
-- Glassmorphism design
-- Citrus-inspired color scheme
-- Installable PWA capabilities
-- Offline support
+## User Experience
+### Interface
+- Modern glass morphism design
+- Real-time progress indicators
 - Responsive layout
-- Loading states and error handling
+- Dark mode optimized
 
-## Security <!-- markmap: fold -->
-- API key protection via environment variables
-- Gitignore configuration
-- Secure PWA asset caching
-- Input validation and error handling
-- Session-based API key storage
-- Real-time API key validation
-- Secure key management using sessionStorage
+### Progressive Web App
+- Offline capability
+- Install prompts
+- App-like experience
+- Background processing
 
-## PWA Features <!-- markmap: fold -->
-### Installation
-- App manifest configuration
-- Install prompt in settings
-- Icon assets for various sizes
+### Accessibility
+- Keyboard navigation
+- Screen reader support
+- High contrast elements
+- Clear visual feedback
 
-### Offline Support
-- Service worker registration
-- Asset caching strategy
-- Model caching for offline use
-- Automatic updates
+## File Structure
+### Source Code
+- `/src`
+  - `/components`: React components
+  - `/store`: Zustand stores
+  - `/utils`: Utility functions
+  - `/styles`: CSS and styling
+  - `/types`: TypeScript definitions
 
-### Performance
-- Optimized caching policies
-- Efficient asset serving
-- Background sync capabilities
+### Documentation
+- `/docs`
+  - `CHANGELOG.md`: Version history
+  - `project-map.md`: Project structure
+  - Technical documentation
+
+### Configuration
+- `vite.config.ts`: Build configuration
+- `.env.example`: Environment variables
+- `package.json`: Dependencies
+- `tsconfig.json`: TypeScript settings
