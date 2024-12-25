@@ -77,28 +77,18 @@ export function Help() {
           </div>
           <div>
             <h2 className="text-xl font-semibold text-gray-100">What's New in {APP_VERSION}</h2>
-            <p className="text-gray-400 text-sm">Released December 17, 2024</p>
+            <p className="text-gray-400 text-sm">Released March 19, 2024</p>
           </div>
         </div>
         
         <div className="space-y-4 text-gray-300">
           <div className="space-y-2">
-            <h3 className="font-medium">New Features</h3>
+            <h3 className="font-medium">Fixed</h3>
             <ul className="list-disc list-inside space-y-2 text-gray-400">
-              <li>Added OpenAI as a transcription provider</li>
-              <li>New themed document exports with Professional and Tropical styles</li>
-              <li>Bulk export functionality in History view</li>
-              <li>Enhanced document styling with theme-specific colors</li>
-            </ul>
-          </div>
-          
-          <div className="space-y-2">
-            <h3 className="font-medium">Improvements</h3>
-            <ul className="list-disc list-inside space-y-2 text-gray-400">
-              <li>Improved provider selection and API key management</li>
-              <li>Enhanced export formatting and styling options</li>
-              <li>Better error handling and notifications</li>
-              <li>Updated UI with consistent dark glass morphism style</li>
+              <li>Corrected Groq implementation with proper endpoint and model name</li>
+              <li>Removed unsupported parameters from Groq API requests</li>
+              <li>Improved error handling for Groq API responses</li>
+              <li>Updated API documentation to reflect correct Groq configuration</li>
             </ul>
           </div>
         </div>
