@@ -146,68 +146,86 @@ async function performTranscription(
   
   switch (provider) {
     case 'huggingface': {
-      apiUrl = 'https://api-inference.huggingface.co/models/openai/whisper-large-v3-turbo';
+      apiUrl = 'https://api-inference.huggingface.co/models/openai/whisper-large-v3';
       headers = {
         'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
+        'Content-Type': 'audio/wav'
       };
+
+      // Convert audio chunk to binary data
+      const arrayBuffer = await chunk.arrayBuffer();
+      const binaryData = new Uint8Array(arrayBuffer);
       
-      // Convert audio chunk to base64
-      const audioBase64 = await new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          const base64 = reader.result as string;
-          resolve(base64.split(',')[1]); // Remove data URL prefix
-        };
-        reader.readAsDataURL(chunk);
-      });
+      // Make request directly for Hugging Face with retries for cold starts
+      let retries = 0;
+      const maxRetries = 3;
+      
+      while (retries < maxRetries) {
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers,
+          body: binaryData
+        });
 
-      // Send as JSON payload instead of FormData
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          inputs: audioBase64,
-          parameters: {
-            wait_for_model: true,
-            return_timestamps: true,
-            chunk_length_s: 30,
-            stride_length_s: 5,
-            language: 'en',
-            task: 'transcribe',
-            return_segments: true,
-            batch_size: 1,
-            num_beams: 1,
-            temperature: 0,
-            compression_ratio_threshold: 2.4,
-            logprob_threshold: -1,
-            no_speech_threshold: 0.6,
-            condition_on_previous_text: false
-          }
-        })
-      });
-
-      if (!response.ok) {
-        let errorMessage = `API request failed with status ${response.status}`;
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.error || errorMessage;
-        } catch {
-          // If parsing error response fails, use default message
+        if (response.status === 503) {
+          // Model is loading (cold start)
+          console.log('Model is loading, waiting before retry...');
+          await new Promise(resolve => setTimeout(resolve, 2000));  // Wait 2 seconds
+          retries++;
+          continue;
         }
-        throw new Error(errorMessage);
-      }
 
-      const result = await response.json();
+        if (!response.ok) {
+          let errorMessage = `API request failed with status ${response.status}`;
+          try {
+            const errorData = await response.json();
+            if (errorData.error?.includes('token seems invalid')) {
+              throw new Error('Invalid Hugging Face API token. Please check your token and ensure you have access to the model.');
+            }
+            errorMessage = errorData.error || `Hugging Face API error: ${response.status}`;
+            console.error('Hugging Face API error details:', errorData);
+          } catch (e) {
+            console.error('Error parsing Hugging Face error response:', e);
+          }
+          throw new Error(errorMessage);
+        }
+
+        const result = await response.json();
+        console.log('Hugging Face response:', result);
+        
+        // Extract text from the response object
+        let transcribedText = '';
+        
+        // Handle the case where the response has a duplicate text property
+        if (typeof result === 'object') {
+          // Get all text properties from the object
+          const textValues = Object.values(result).filter(value => 
+            typeof value === 'string' && value.length > 0
+          );
+          
+          // Use the longest text value (likely the full transcription)
+          transcribedText = textValues.reduce((longest, current) => 
+            current.length > longest.length ? current : longest
+          , '');
+        } else if (typeof result === 'string') {
+          transcribedText = result;
+        }
+
+        console.log('Extracted transcription text:', transcribedText);
+
+        if (!transcribedText) {
+          console.error('No valid transcription found in response:', result);
+          throw new Error('No valid transcription found in response');
+        }
+
+        // Return the processed result
+        return {
+          text: transcribedText,
+          timestamps: []  // Hugging Face doesn't provide timestamps in this format
+        };
+      }
       
-      return {
-        text: result.text || '',
-        timestamps: result.chunks?.map((chunk: any) => ({
-          time: chunk.timestamp[0],
-          text: chunk.text
-        })) || []
-      };
+      throw new Error('Model failed to load after maximum retries');
     }
       
     case 'groq': {
@@ -221,12 +239,10 @@ async function performTranscription(
         type: chunk.type || 'audio/wav'
       });
       formData.append('file', audioFile);
-      formData.append('model', 'whisper-large-v3');
+      formData.append('model', 'whisper-large-v3-turbo');
       formData.append('response_format', 'verbose_json');
       formData.append('language', 'en');
       formData.append('temperature', '0');
-      formData.append('timestamp_granularities', 'word');
-      formData.append('prompt', 'This is an audio transcription.');
       
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -238,9 +254,10 @@ async function performTranscription(
         let errorMessage = `API request failed with status ${response.status}`;
         try {
           const errorData = await response.json();
-          errorMessage = errorData.error || errorMessage;
-        } catch {
-          // If parsing error response fails, use default message
+          errorMessage = errorData.error?.message || errorData.error || errorMessage;
+          console.error('Groq API error details:', errorData);
+        } catch (e) {
+          console.error('Error parsing Groq error response:', e);
         }
         throw new Error(errorMessage);
       }
@@ -279,6 +296,7 @@ async function performTranscription(
       throw new Error('Invalid provider');
   }
 
+  // This section only runs for OpenAI since Hugging Face and Groq return early
   console.log(`Making request to ${apiUrl} with provider ${provider}`);
   
   const response = await fetch(apiUrl, {
@@ -300,30 +318,12 @@ async function performTranscription(
 
   const result = await response.json();
   
-  // Process response based on provider
-  switch (provider) {
-    case 'huggingface': {
-      return {
-        text: result.text || '',
-        timestamps: result.chunks?.map((chunk: any) => ({
-          time: chunk.timestamp[0],
-          text: chunk.text
-        })) || []
-      };
-    }
-      
-    case 'groq':
-    case 'openai': {
-      return {
-        text: result.text || '',
-        timestamps: result.segments?.map((segment: any) => ({
-          time: segment.start,
-          text: segment.text
-        })) || []
-      };
-    }
-      
-    default:
-      throw new Error('Invalid provider');
-  }
+  // Process response for OpenAI only
+  return {
+    text: result.text || '',
+    timestamps: result.segments?.map((segment: any) => ({
+      time: segment.start,
+      text: segment.text
+    })) || []
+  };
 }

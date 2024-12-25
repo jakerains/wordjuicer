@@ -78,7 +78,7 @@ export function TranscriptionViewer({ transcription, timestamps }: Transcription
     }
   };
 
-  return timestamps.length > 0 ? (
+  return (
     <div className="w-full max-w-4xl bg-gray-900/75 backdrop-blur-md rounded-[20px] border border-gray-700/30 shadow-xl p-3 sm:p-4 lg:p-8">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-4 mb-4 sm:mb-6">
         <h2 className="text-lg lg:text-xl font-semibold text-gray-100">
@@ -100,13 +100,11 @@ export function TranscriptionViewer({ transcription, timestamps }: Transcription
       </div>
       
       <div className="h-[400px] sm:h-[500px] overflow-y-auto rounded-[16px] bg-gray-800/60 backdrop-blur-sm p-3 sm:p-6 border border-gray-700/30 space-y-3 sm:space-y-6">
-        {renderContent()}
-      </div>
-    </div>
-  ) : (
-    <div className="w-full max-w-4xl bg-gray-900/75 backdrop-blur-md rounded-[20px] border border-gray-700/30 shadow-xl p-4 sm:p-8">
-      <div className="flex items-center justify-center h-[200px]">
-        <p className="text-gray-400 text-lg">No transcription data available</p>
+        {timestamps.length > 0 ? renderContent() : (
+          <p className="text-sm sm:text-base text-gray-200 leading-relaxed tracking-wide whitespace-pre-wrap">
+            {transcription}
+          </p>
+        )}
       </div>
     </div>
   );

@@ -132,8 +132,12 @@ function App() {
         message: `Successfully transcribed ${file.name}`
       });
 
-      setTranscription(result.text);
-      setTimestamps(result.timestamps);
+      // Set the transcription and timestamps state
+      console.log('Setting transcription:', result.text);
+      console.log('Setting timestamps:', result.timestamps);
+      setTranscription(result.text || '');  // Ensure we have a string even if text is undefined
+      setTimestamps(result.timestamps || []);  // Ensure we have an array even if timestamps is undefined
+      setError(null);  // Clear any previous errors
     } catch (err) {
       const error = err as APIError;
       const errorMessage = error.message || 'Unknown error';
