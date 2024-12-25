@@ -363,6 +363,9 @@ function App() {
           delay: 1
         }}
         className="fixed top-8 right-8 z-40 select-none"
+        style={{
+          filter: 'drop-shadow(0 8px 24px rgba(0, 0, 0, 0.2)) drop-shadow(0 20px 40px rgba(249, 108, 87, 0.4))'
+        }}
       >
         <motion.div
           animate={{ opacity: [1, 0] }}
@@ -380,8 +383,9 @@ function App() {
               background: 'linear-gradient(135deg, #F96C57, #E1C94B)',
               clipPath: 'polygon(50% 0%, 65% 25%, 97% 25%, 70% 50%, 79% 95%, 50% 70%, 21% 95%, 30% 50%, 3% 25%, 35% 25%)',
               transform: 'rotate(5deg)',
-              filter: 'drop-shadow(0 8px 16px rgba(249, 108, 87, 0.3))',
-              backdropFilter: 'blur(8px)'
+              backdropFilter: 'blur(8px)',
+              outline: '2px solid rgba(255, 255, 255, 0.3)',
+              outlineOffset: '-2px'
             }}
           />
           
@@ -392,16 +396,18 @@ function App() {
               background: 'linear-gradient(135deg, #FFB347, #FFD700)',
               clipPath: 'polygon(50% 0%, 65% 25%, 97% 25%, 70% 50%, 79% 95%, 50% 70%, 21% 95%, 30% 50%, 3% 25%, 35% 25%)',
               transform: 'rotate(5deg)',
-              backdropFilter: 'blur(4px)'
+              backdropFilter: 'blur(4px)',
+              boxShadow: 'inset 0 2px 6px rgba(255, 255, 255, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.2)'
             }}
           >
             {/* Glossy Overlay */}
             <div 
               className="absolute inset-0"
               style={{
-                background: 'linear-gradient(135deg, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.3) 30%, rgba(255,255,255,0) 50%, rgba(0,0,0,0.1) 100%)',
+                background: 'linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.4) 30%, rgba(255,255,255,0) 50%, rgba(0,0,0,0.1) 100%)',
                 clipPath: 'polygon(50% 0%, 65% 25%, 97% 25%, 70% 50%, 79% 95%, 50% 70%, 21% 95%, 30% 50%, 3% 25%, 35% 25%)',
-                backdropFilter: 'blur(2px)'
+                backdropFilter: 'blur(2px)',
+                boxShadow: 'inset 0 0 0 1px rgba(255, 255, 255, 0.3)'
               }}
             />
           </div>
