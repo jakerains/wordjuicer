@@ -39,3 +39,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed unsupported parameters from Groq API requests
 - Improved error handling for Groq API responses
 - Updated API documentation to reflect correct Groq configuration
+
+## [1.0.5] - 2024-03-19
+
+### Fixed
+- Improved sidebar layout for iOS devices
+  - Fixed bottom menu items being cut off
+  - Added proper viewport height handling
+  - Improved scrolling behavior
+  - Enhanced menu item spacing and alignment
+  - Better text overflow handling

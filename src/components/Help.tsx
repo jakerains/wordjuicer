@@ -85,10 +85,10 @@ export function Help() {
           <div className="space-y-2">
             <h3 className="font-medium">Fixed</h3>
             <ul className="list-disc list-inside space-y-2 text-gray-400">
-              <li>Corrected Groq implementation with proper endpoint and model name</li>
-              <li>Removed unsupported parameters from Groq API requests</li>
-              <li>Improved error handling for Groq API responses</li>
-              <li>Updated API documentation to reflect correct Groq configuration</li>
+              <li>Improved sidebar layout for iOS devices</li>
+              <li>Fixed bottom menu items being cut off</li>
+              <li>Added proper viewport height handling</li>
+              <li>Enhanced menu item spacing and alignment</li>
             </ul>
           </div>
         </div>
