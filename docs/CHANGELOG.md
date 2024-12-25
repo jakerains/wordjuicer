@@ -31,3 +31,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Retry mechanism for failed transcription attempts
 - Efficient caching system for transcribed content
 - Real-time progress tracking and status updates
+
+## [1.0.4] - 2024-03-19
+
+### Fixed
+- Corrected Groq implementation with proper endpoint and model name
+- Removed unsupported parameters from Groq API requests
+- Improved error handling for Groq API responses
+- Updated API documentation to reflect correct Groq configuration
