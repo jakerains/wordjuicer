@@ -353,17 +353,26 @@ function App() {
 
       {/* Launch Special Starburst */}
       <motion.div
-        initial={{ rotate: -10, scale: 0 }}
-        animate={{ rotate: 0, scale: 1 }}
+        initial={{ rotate: -10, scale: 0, opacity: 0 }}
+        animate={{ rotate: 0, scale: 1, opacity: 1 }}
+        exit={{ scale: 0.9, opacity: 0 }}
         transition={{
           type: "spring",
           stiffness: 260,
           damping: 20,
           delay: 1
         }}
-        className="fixed bottom-8 right-8 z-50 select-none"
+        className="fixed top-8 right-8 z-40 select-none"
       >
-        <div className="relative">
+        <motion.div
+          animate={{ opacity: [1, 0] }}
+          transition={{
+            duration: 5,
+            delay: 8,
+            ease: "easeInOut"
+          }}
+          className="relative"
+        >
           {/* Glossy Starburst Base */}
           <div 
             className="absolute inset-0 w-[200px] h-[200px]"
@@ -371,7 +380,8 @@ function App() {
               background: 'linear-gradient(135deg, #F96C57, #E1C94B)',
               clipPath: 'polygon(50% 0%, 65% 25%, 97% 25%, 70% 50%, 79% 95%, 50% 70%, 21% 95%, 30% 50%, 3% 25%, 35% 25%)',
               transform: 'rotate(5deg)',
-              filter: 'drop-shadow(0 8px 16px rgba(249, 108, 87, 0.3))'
+              filter: 'drop-shadow(0 8px 16px rgba(249, 108, 87, 0.3))',
+              backdropFilter: 'blur(8px)'
             }}
           />
           
@@ -382,14 +392,16 @@ function App() {
               background: 'linear-gradient(135deg, #FFB347, #FFD700)',
               clipPath: 'polygon(50% 0%, 65% 25%, 97% 25%, 70% 50%, 79% 95%, 50% 70%, 21% 95%, 30% 50%, 3% 25%, 35% 25%)',
               transform: 'rotate(5deg)',
+              backdropFilter: 'blur(4px)'
             }}
           >
             {/* Glossy Overlay */}
             <div 
               className="absolute inset-0"
               style={{
-                background: 'linear-gradient(135deg, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0.2) 30%, rgba(255,255,255,0) 50%, rgba(0,0,0,0.1) 100%)',
-                clipPath: 'polygon(50% 0%, 65% 25%, 97% 25%, 70% 50%, 79% 95%, 50% 70%, 21% 95%, 30% 50%, 3% 25%, 35% 25%)'
+                background: 'linear-gradient(135deg, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.3) 30%, rgba(255,255,255,0) 50%, rgba(0,0,0,0.1) 100%)',
+                clipPath: 'polygon(50% 0%, 65% 25%, 97% 25%, 70% 50%, 79% 95%, 50% 70%, 21% 95%, 30% 50%, 3% 25%, 35% 25%)',
+                backdropFilter: 'blur(2px)'
               }}
             />
           </div>
@@ -398,6 +410,7 @@ function App() {
           <motion.div 
             animate={{ 
               rotate: [0, -3, 3, -3, 0],
+              scale: [1, 1.02, 1, 1.02, 1]
             }}
             transition={{ 
               duration: 3,
@@ -416,7 +429,7 @@ function App() {
                 width="48" 
                 height="48" 
                 viewBox="0 0 48 48" 
-                className="transform -rotate-12"
+                className="transform -rotate-12 drop-shadow-lg"
               >
                 {/* Main Lemon Shape */}
                 <path
@@ -429,33 +442,34 @@ function App() {
                 <path
                   d="M24 8C14.0589 8 6 16.0589 6 26C6 35.9411 14.0589 44 24 44C33.9411 44 42 35.9411 42 26"
                   fill="url(#lemonHighlight)"
-                  opacity="0.6"
+                  opacity="0.8"
                 />
 
                 {/* Leaf */}
                 <path
                   d="M23 4C23 4 20 0 24 0C28 0 25 4 25 4"
                   fill="url(#leafGradient)"
+                  filter="url(#leafShadow)"
                 />
                 
                 {/* Leaf Highlight */}
                 <path
                   d="M23.5 3C23.5 3 22 1 24 1C26 1 24.5 3 24.5 3"
                   fill="url(#leafHighlight)"
-                  opacity="0.5"
+                  opacity="0.7"
                 />
 
                 {/* Definitions */}
                 <defs>
                   {/* Lemon Base Gradient */}
                   <linearGradient id="lemonGradient" x1="4" y1="4" x2="44" y2="44">
-                    <stop offset="0%" stopColor="#FFD700" />
-                    <stop offset="100%" stopColor="#FFA500" />
+                    <stop offset="0%" stopColor="#FFE135" />
+                    <stop offset="100%" stopColor="#FFB347" />
                   </linearGradient>
 
                   {/* Lemon Highlight Gradient */}
                   <linearGradient id="lemonHighlight" x1="6" y1="8" x2="42" y2="44">
-                    <stop offset="0%" stopColor="white" stopOpacity="0.5" />
+                    <stop offset="0%" stopColor="white" stopOpacity="0.7" />
                     <stop offset="100%" stopColor="white" stopOpacity="0" />
                   </linearGradient>
 
@@ -473,7 +487,12 @@ function App() {
 
                   {/* Shadow Filter */}
                   <filter id="lemonShadow" x="-2" y="-2" width="52" height="52">
-                    <feDropShadow dx="0" dy="2" stdDeviation="2" floodOpacity="0.3" />
+                    <feDropShadow dx="0" dy="2" stdDeviation="2" floodOpacity="0.4" />
+                  </filter>
+
+                  {/* Leaf Shadow */}
+                  <filter id="leafShadow" x="-2" y="-2" width="52" height="52">
+                    <feDropShadow dx="0" dy="1" stdDeviation="1" floodOpacity="0.3" />
                   </filter>
                 </defs>
               </svg>
@@ -491,7 +510,7 @@ function App() {
               >
                 LAUNCH SPECIAL!
               </span>
-              <div className="text-xs mt-1 text-white font-medium opacity-90">NOW WITH</div>
+              <div className="text-xs mt-1 text-white font-medium opacity-90 drop-shadow-md">NOW WITH</div>
               <span 
                 className="text-xl mt-1 font-black block"
                 style={{
@@ -516,7 +535,7 @@ function App() {
               </span>
             </div>
           </motion.div>
-        </div>
+        </motion.div>
       </motion.div>
     </div>
   );
