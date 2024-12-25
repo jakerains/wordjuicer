@@ -149,33 +149,65 @@ async function performTranscription(
       apiUrl = 'https://api-inference.huggingface.co/models/openai/whisper-large-v3-turbo';
       headers = {
         'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
         'Accept': 'application/json'
       };
-      const audioFile = new File([chunk], 'audio.wav', { 
-        type: chunk.type || 'audio/wav'
+      
+      // Convert audio chunk to base64
+      const audioBase64 = await new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64 = reader.result as string;
+          resolve(base64.split(',')[1]); // Remove data URL prefix
+        };
+        reader.readAsDataURL(chunk);
       });
-      formData.append('file', audioFile);
+
+      // Send as JSON payload instead of FormData
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          inputs: audioBase64,
+          parameters: {
+            wait_for_model: true,
+            return_timestamps: true,
+            chunk_length_s: 30,
+            stride_length_s: 5,
+            language: 'en',
+            task: 'transcribe',
+            return_segments: true,
+            batch_size: 1,
+            num_beams: 1,
+            temperature: 0,
+            compression_ratio_threshold: 2.4,
+            logprob_threshold: -1,
+            no_speech_threshold: 0.6,
+            condition_on_previous_text: false
+          }
+        })
+      });
+
+      if (!response.ok) {
+        let errorMessage = `API request failed with status ${response.status}`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch {
+          // If parsing error response fails, use default message
+        }
+        throw new Error(errorMessage);
+      }
+
+      const result = await response.json();
       
-      // Required parameters for long-form audio
-      formData.append('wait_for_model', 'true');
-      formData.append('return_timestamps', 'true');
-      
-      // Optional parameters for better transcription
-      formData.append('chunk_length_s', '30');
-      formData.append('stride_length_s', '5');
-      formData.append('language', 'en');
-      formData.append('task', 'transcribe');
-      formData.append('return_segments', 'true');
-      
-      // Performance parameters
-      formData.append('batch_size', '1');
-      formData.append('num_beams', '1');
-      formData.append('temperature', '0');
-      formData.append('compression_ratio_threshold', '2.4');
-      formData.append('logprob_threshold', '-1');
-      formData.append('no_speech_threshold', '0.6');
-      formData.append('condition_on_previous_text', 'false');
-      break;
+      return {
+        text: result.text || '',
+        timestamps: result.chunks?.map((chunk: any) => ({
+          time: chunk.timestamp[0],
+          text: chunk.text
+        })) || []
+      };
     }
       
     case 'groq': {
@@ -189,11 +221,43 @@ async function performTranscription(
         type: chunk.type || 'audio/wav'
       });
       formData.append('file', audioFile);
-      formData.append('model', 'whisper-large-v3-turbo');
+      formData.append('model', 'whisper-large-v3');
       formData.append('response_format', 'verbose_json');
       formData.append('language', 'en');
       formData.append('temperature', '0');
-      break;
+      formData.append('timestamp_granularities', 'word');
+      formData.append('prompt', 'This is an audio transcription.');
+      
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers,
+        body: formData
+      });
+
+      if (!response.ok) {
+        let errorMessage = `API request failed with status ${response.status}`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch {
+          // If parsing error response fails, use default message
+        }
+        throw new Error(errorMessage);
+      }
+
+      const result = await response.json();
+      
+      if (!result.text) {
+        throw new Error('No transcription data available from Groq');
+      }
+
+      return {
+        text: result.text,
+        timestamps: result.segments?.map((segment: any) => ({
+          time: segment.start,
+          text: segment.text.trim()
+        })) || []
+      };
     }
       
     case 'openai': {
