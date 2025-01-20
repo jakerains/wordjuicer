@@ -18,7 +18,7 @@ function formatTimestamp(seconds: number): string {
 }
 
 export function TranscriptionViewer({ transcription, timestamps }: TranscriptionViewerProps) {
-  const [currentView, setCurrentView] = React.useState<TranscriptionView>('segments');
+  const [currentView, setCurrentView] = React.useState<TranscriptionView>('transcript');
   const handleCopyToClipboard = async () => {
     try {
       await navigator.clipboard.writeText(transcription);
