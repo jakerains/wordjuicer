@@ -1,107 +1,95 @@
-# Word Juicer Documentation
+# Word Juicer 🍊
 
-Welcome to the Word Juicer documentation! This guide will help you navigate through all available documentation resources.
+> A powerful audio transcription app with multi-service support and offline capabilities
 
-## Quick Links
+Word Juicer is a modern, efficient audio transcription application that leverages multiple AI services (OpenAI, Groq, and Hugging Face) to provide accurate transcriptions. Built as a Progressive Web App (PWA), it works both online and offline, offering a seamless experience across devices.
 
-- [Quick Start Guide](guides/QUICK_START.md) - Get started with Word Juicer
-- [Installation Guide](guides/INSTALLATION.md) - Detailed installation instructions
-- [Feature Documentation](guides/FEATURES.md) - Explore all features
-- [Troubleshooting Guide](guides/TROUBLESHOOTING.md) - Solve common issues
-- [API Reference](api/API_REFERENCE.md) - Technical API documentation
+[![Live Demo](https://img.shields.io/badge/demo-live-green.svg)](https://wordjuicer.app)
+[![Version](https://img.shields.io/badge/version-1.0.5-blue.svg)](docs/CHANGELOG.md)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-## Documentation Structure
+![Word Juicer Screenshot](public/juicericons/icon-1024.png)
 
-### Getting Started
-1. [Quick Start Guide](guides/QUICK_START.md)
-   - Introduction to Word Juicer
-   - Basic setup and usage
-   - Essential features
-   - First transcription
+## ✨ Features
 
-2. [Installation Guide](guides/INSTALLATION.md)
-   - Installation methods
-   - System requirements
-   - Configuration steps
-   - Security setup
-   - Maintenance
+- 🎯 **Multi-Service Support**: OpenAI, Groq, and Hugging Face integration
+- 🔄 **Automatic Failover**: Smart service switching for reliability
+- 💾 **Offline Support**: Full PWA capabilities with local processing
+- 📊 **Real-time Progress**: Live transcription status and progress tracking
+- 🔒 **Secure**: Local-first approach with secure API key management
+- 📱 **Cross-Platform**: Works on desktop and mobile devices
+- 🎨 **Modern UI**: Beautiful glass morphism design
 
-### Core Documentation
-3. [Feature Documentation](guides/FEATURES.md)
-   - Core features
-   - Advanced features
-   - Integration features
-   - User interface
-   - Analytics
+## 🚀 Quick Start
 
-4. [API Reference](api/API_REFERENCE.md)
-   - Service integration
-   - Error handling
-   - Best practices
-   - Integration examples
-   - Security considerations
+1. Visit [Word Juicer](https://wordjuicer.app)
+2. Install as PWA or use directly in browser
+3. Start transcribing immediately with our built-in Groq trial key, or set up your own API key for expanded limits:
+   - [Groq](https://console.groq.com/keys) (Recommended)
+   - [OpenAI](https://platform.openai.com/api-keys)
+   - [Hugging Face](https://huggingface.co/settings/tokens)
 
-### Support Documentation
-5. [Troubleshooting Guide](guides/TROUBLESHOOTING.md)
-   - Common issues
-   - Solutions
-   - Prevention tips
-   - Getting help
-   - Debug information
+> **Note**: A trial Groq API key is provided for testing, but it has rate limits. For the best experience, we recommend using your own API key.
 
-### Project Documentation
-6. [Changelog](CHANGELOG.md)
-   - Version history
-   - Feature updates
-   - Bug fixes
-   - Improvements
+## �� Documentation
 
-7. [Implementation Plan](IMPLEMENTATION_PLAN.md)
-   - Development phases
-   - Technical details
-   - Architecture decisions
-   - Progress tracking
+- [Quick Start Guide](guides/QUICK_START.md)
+- [Installation Guide](guides/INSTALLATION.md)
+- [Feature Documentation](guides/FEATURES.md)
+- [Troubleshooting](guides/TROUBLESHOOTING.md)
+- [API Reference](api/API_REFERENCE.md)
+- [Changelog](CHANGELOG.md)
 
-8. [Roadmap](ROADMAP.md)
-   - Future plans
-   - Upcoming features
-   - Priority matrix
-   - Release schedule
+## 💻 Development
 
-## Documentation Updates
+### System Requirements
 
-The documentation is regularly updated to reflect the latest changes and improvements to Word Juicer. Each document includes:
+- Modern web browser
+- 4GB RAM minimum
+- Stable internet connection
+- 1GB free storage space
 
-- Last updated date
-- Version compatibility
-- Related resources
-- Change history
+### Supported File Formats
 
-## Contributing
+- MP3
+- WAV
+- M4A
+- FLAC
 
-We welcome contributions to improve our documentation:
+### File Limitations
 
-1. Report documentation issues
-2. Suggest improvements
-3. Submit corrections
-4. Add examples
+- Maximum file size: 100MB per file
+- Supported audio length: Up to 4 hours
 
-## Support
+## 🤝 Contributing
 
-If you need additional help:
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
 
-1. Check the [Troubleshooting Guide](guides/TROUBLESHOOTING.md)
-2. Visit our GitHub repository
-3. Submit an issue
-4. Contact support
-5. Join our community
+1. Fork the repository
+2. Create your feature branch
+3. Commit your changes
+4. Push to the branch
+5. Open a Pull Request
 
-## Documentation Conventions
+## 📝 License
 
-Throughout the documentation:
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-- Code examples use syntax highlighting
-- Important notes are highlighted
-- Step-by-step guides are numbered
-- Related topics are cross-referenced
-- External resources are clearly marked 
+## 🙏 Acknowledgments
+
+- OpenAI Whisper model
+- Groq API
+- Hugging Face Transformers
+- Our amazing contributors
+
+## 📫 Support
+
+Need help? Check out our [Troubleshooting Guide](guides/TROUBLESHOOTING.md) or:
+
+1. Search our [documentation](docs/)
+2. Open an [issue](../../issues)
+3. Join our community discussions
+
+---
+
+Made with ❤️ by [jakerains](https://github.com/jakerains) 

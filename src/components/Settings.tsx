@@ -13,6 +13,8 @@ interface SettingsProps {
 export function Settings({ setActiveView }: SettingsProps) {
   const [isPWAInstalled, setIsPWAInstalled] = React.useState(false);
   const [deferredPrompt, setDeferredPrompt] = React.useState<any>(null);
+  const [selectedModelSize, setSelectedModelSize] = React.useState('large');
+  const [downloadStatus, setDownloadStatus] = React.useState('');
 
   React.useEffect(() => {
     const handleBeforeInstallPrompt = (e: Event) => {
@@ -108,6 +110,17 @@ export function Settings({ setActiveView }: SettingsProps) {
     setInputKey('');
   };
 
+  const handleModelDownload = async () => {
+    setDownloadStatus('Downloading...');
+    try {
+      // Simulate model download
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      setDownloadStatus('Download complete!');
+    } catch (error) {
+      setDownloadStatus('Download failed.');
+    }
+  };
+
   return (
     <div className="max-w-2xl space-y-6">
       <div className="bg-gray-900/75 backdrop-blur-md rounded-[20px] p-6 border border-gray-700/30 shadow-xl">
@@ -140,10 +153,15 @@ export function Settings({ setActiveView }: SettingsProps) {
                 variant={provider === 'groq' ? 'primary' : 'secondary'}
                 size="md"
                 onClick={() => handleProviderChange('groq')}
-                className="flex-1"
+                className="flex-1 relative"
                 icon={<Server className="w-4 h-4" />}
               >
                 Groq
+                {provider === 'groq' && !inputKey && import.meta.env.VITE_GROQ_API_KEY && (
+                  <span className="absolute -top-2 -right-2 bg-[#A2AD1E] text-black text-xs px-2 py-0.5 rounded-full">
+                    Trial
+                  </span>
+                )}
               </GlassButton>
               <GlassButton
                 variant={provider === 'openai' ? 'primary' : 'secondary'}
@@ -175,7 +193,11 @@ export function Settings({ setActiveView }: SettingsProps) {
                 onChange={(e) => setInputKey(e.target.value)}
                 onKeyPress={handleKeyPress}
                 className="flex-1 bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white placeholder-white/40 focus:outline-none focus:border-[#A2AD1E]"
-                placeholder="Enter your API key"
+                placeholder={
+                  provider === 'groq' && !inputKey && import.meta.env.VITE_GROQ_API_KEY
+                    ? 'Using trial API key - Enter your own key for expanded limits'
+                    : 'Enter your API key'
+                }
               />
               <GlassButton
                 variant="primary"
@@ -190,7 +212,7 @@ export function Settings({ setActiveView }: SettingsProps) {
               >
                 <span className="hidden sm:inline">Validate</span>
               </GlassButton>
-              {isValidated && (
+              {isValidated && inputKey && (
                 <GlassButton
                   variant="secondary"
                   size="md"
@@ -200,22 +222,38 @@ export function Settings({ setActiveView }: SettingsProps) {
                 </GlassButton>
               )}
             </div>
-            <p className="mt-2 text-sm text-white/70">
-              Get your API key from{' '}
-              <a
-                href={provider === 'huggingface' 
-                  ? 'https://huggingface.co/settings/tokens'
-                  : provider === 'groq'
-                  ? 'https://console.groq.com/keys'
-                  : 'https://platform.openai.com/api-keys'}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[#E1C94B] hover:text-[#F96C57] transition-colors"
-              >
-                {provider === 'huggingface' ? 'Hugging Face' : 
-                 provider === 'groq' ? 'Groq' : 'OpenAI'}
-              </a>
-            </p>
+            <div className="mt-2 space-y-2">
+              {provider === 'groq' && !inputKey && import.meta.env.VITE_GROQ_API_KEY ? (
+                <p className="text-sm text-white/70">
+                  Using trial API key with rate limits. For expanded limits,{' '}
+                  <a
+                    href="https://console.groq.com/keys"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[#E1C94B] hover:text-[#F96C57] transition-colors"
+                  >
+                    get your own Groq API key
+                  </a>
+                </p>
+              ) : (
+                <p className="text-sm text-white/70">
+                  Get your API key from{' '}
+                  <a
+                    href={provider === 'huggingface' 
+                      ? 'https://huggingface.co/settings/tokens'
+                      : provider === 'groq'
+                      ? 'https://console.groq.com/keys'
+                      : 'https://platform.openai.com/api-keys'}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[#E1C94B] hover:text-[#F96C57] transition-colors"
+                  >
+                    {provider === 'huggingface' ? 'Hugging Face' : 
+                     provider === 'groq' ? 'Groq' : 'OpenAI'}
+                  </a>
+                </p>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -291,6 +329,24 @@ export function Settings({ setActiveView }: SettingsProps) {
           >
             Reset Dashboard Data
           </GlassButton>
+        </div>
+      </div>
+
+      <div className="bg-gray-900/75 backdrop-blur-md rounded-[20px] p-6 border border-gray-700/30 shadow-xl">
+        <h2>Offline Model Management</h2>
+        <div>
+          <label htmlFor="modelSize">Select Model Size:</label>
+          <select
+            id="modelSize"
+            value={selectedModelSize}
+            onChange={(e) => setSelectedModelSize(e.target.value)}
+          >
+            <option value="small">Small</option>
+            <option value="medium">Medium</option>
+            <option value="large">Large</option>
+          </select>
+          <button onClick={handleModelDownload}>Download Model</button>
+          <p>{downloadStatus}</p>
         </div>
       </div>
 

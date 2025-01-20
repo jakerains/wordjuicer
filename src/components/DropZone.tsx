@@ -103,8 +103,38 @@ export function DropZone({ onFileSelect, isLoading }: DropZoneProps) {
       </div>
       
       {validatedProviders.length === 0 ? (
-        <div className="mt-4 text-center text-white/70">
-          Please add your API key in Settings to start transcribing
+        <div className="mt-6 text-center">
+          <p className="text-sm text-white/50">
+            Using trial key (rate limited) - For unlimited transcriptions, add your own key from:
+          </p>
+          <div className="mt-2 flex items-center justify-center gap-3">
+            <a
+              href="https://console.groq.com/keys"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm font-medium text-[#A2AD1E] hover:text-[#F96C57] transition-colors"
+            >
+              Groq
+            </a>
+            <span className="text-white/30">•</span>
+            <a
+              href="https://platform.openai.com/api-keys"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm font-medium text-[#A2AD1E] hover:text-[#F96C57] transition-colors"
+            >
+              OpenAI
+            </a>
+            <span className="text-white/30">•</span>
+            <a
+              href="https://huggingface.co/settings/tokens"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm font-medium text-[#A2AD1E] hover:text-[#F96C57] transition-colors"
+            >
+              Hugging Face
+            </a>
+          </div>
         </div>
       ) : (
         <div className="flex flex-col items-center gap-4 mt-8">

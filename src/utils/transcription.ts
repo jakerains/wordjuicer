@@ -31,8 +31,8 @@ export async function transcribeAudio(
   
   let allResults: { text: string; timestamps: Array<{ time: number; text: string }> }[] = [];
 
-  if (!apiKey || !isValidated) {
-    throw new Error(`Please add a valid ${provider === 'huggingface' ? 'Hugging Face' : provider === 'groq' ? 'Groq' : 'OpenAI'} API key in settings`);
+  if (!apiKey && !import.meta.env.VITE_GROQ_API_KEY) {
+    throw new Error('No API key available. Please add an API key in settings or wait for the trial key to be available.');
   }
 
   // Reset progress tracking
@@ -230,51 +230,91 @@ async function performTranscription(
       
     case 'groq': {
       apiUrl = 'https://api.groq.com/openai/v1/audio/transcriptions';
-      headers = {
-        'Authorization': `Bearer ${apiKey}`,
-        'Accept': 'application/json'
-      };
+      const key = apiKey || import.meta.env.VITE_GROQ_API_KEY;
       
-      const audioFile = new File([chunk], 'audio.wav', { 
-        type: chunk.type || 'audio/wav'
+      // Create a new FormData instance
+      const formData = new FormData();
+      
+      // Convert blob to File with proper MIME type
+      const audioFile = new File([chunk], 'audio.flac', { 
+        type: 'audio/flac'  // Using FLAC as recommended by Groq
       });
+
+      // Append required fields
       formData.append('file', audioFile);
       formData.append('model', 'whisper-large-v3-turbo');
-      formData.append('response_format', 'verbose_json');
+      formData.append('response_format', 'json');
       formData.append('language', 'en');
-      formData.append('temperature', '0');
-      
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers,
-        body: formData
-      });
+      formData.append('temperature', '0.0');
+      // Add prompt to encourage proper formatting
+      formData.append('prompt', 'Format the transcription with proper punctuation, paragraphs, and natural sentence breaks. Maintain original speaking style but ensure text is well-formatted.');
 
-      if (!response.ok) {
-        let errorMessage = `API request failed with status ${response.status}`;
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.error?.message || errorData.error || errorMessage;
-          console.error('Groq API error details:', errorData);
-        } catch (e) {
-          console.error('Error parsing Groq error response:', e);
+      try {
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${key}`
+          },
+          body: formData
+        });
+
+        if (!response.ok) {
+          let errorMessage = `API request failed with status ${response.status}`;
+          try {
+            const errorData = await response.json();
+            errorMessage = errorData.error?.message || errorData.error || errorMessage;
+            console.error('Groq API error details:', errorData);
+            
+            if (response.status === 401) {
+              throw new Error('Invalid API key. Please check your Groq API key.');
+            }
+            if (response.status === 404) {
+              throw new Error('Groq API endpoint not found. Please try again later.');
+            }
+            if (response.status === 413) {
+              throw new Error('Audio file too large. Maximum size is 25MB.');
+            }
+          } catch (e) {
+            console.error('Error parsing Groq error response:', e);
+          }
+          throw new Error(errorMessage);
         }
-        throw new Error(errorMessage);
-      }
 
-      const result = await response.json();
-      
-      if (!result.text) {
-        throw new Error('No transcription data available from Groq');
-      }
+        const result = await response.json();
+        
+        if (!result.text) {
+          throw new Error('No transcription data available from Groq');
+        }
 
-      return {
-        text: result.text,
-        timestamps: result.segments?.map((segment: any) => ({
-          time: segment.start,
-          text: segment.text.trim()
-        })) || []
-      };
+        // Process the text to ensure proper formatting
+        const processedText = result.text
+          // Remove extra whitespace
+          .replace(/\s+/g, ' ')
+          // Ensure proper spacing after punctuation
+          .replace(/([.!?])\s*/g, '$1 ')
+          // Ensure proper paragraph breaks
+          .replace(/([.!?])\s+(?=[A-Z])/g, '$1\n\n')
+          .trim();
+
+        // Create timestamps based on word count and estimated duration
+        const words = processedText.split(' ');
+        const avgTimePerWord = 0.3; // Estimate 300ms per word
+        const timestamps = words.map((word: string, index: number) => ({
+          time: Math.round(index * avgTimePerWord * 100) / 100,
+          text: word
+        }));
+
+        return {
+          text: processedText,
+          timestamps
+        };
+      } catch (error) {
+        console.error('Groq transcription error:', error);
+        if (error instanceof Error) {
+          error.message = `Groq transcription failed: ${error.message}`;
+        }
+        throw error;
+      }
     }
       
     case 'openai': {

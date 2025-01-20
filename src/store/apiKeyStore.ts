@@ -32,21 +32,31 @@ function getStoredKeys(): StoredKeys {
       openai: import.meta.env.VITE_OPENAI_API_KEY
     };
 
-    // If any environment variables exist, use them
-    if (envKeys.huggingface || envKeys.groq || envKeys.openai) {
-      return envKeys;
-    }
-
-    // Otherwise fall back to session storage
+    // Get user-stored keys
     const stored = sessionStorage.getItem(STORAGE_KEY);
-    return stored ? JSON.parse(stored) : {};
+    const userKeys = stored ? JSON.parse(stored) : {};
+
+    // Merge keys, preferring user-stored keys over env keys
+    return {
+      ...envKeys,
+      ...userKeys
+    };
   } catch {
     return {};
   }
 }
 
 function storeKeys(keys: StoredKeys) {
-  sessionStorage.setItem(STORAGE_KEY, JSON.stringify(keys));
+  // Only store user-provided keys, not env keys
+  const storedKeys = Object.entries(keys).reduce((acc, [key, value]) => {
+    const envKey = import.meta.env[`VITE_${key.toUpperCase()}_API_KEY`];
+    if (value && value !== envKey) {
+      acc[key as keyof StoredKeys] = value;
+    }
+    return acc;
+  }, {} as StoredKeys);
+  
+  sessionStorage.setItem(STORAGE_KEY, JSON.stringify(storedKeys));
 }
 
 async function validateApiKey(key: string, provider: ApiProvider): Promise<boolean> {
@@ -94,7 +104,7 @@ export const useApiKeyStore = create<ApiKeyStore>()(
   persist(
     (set, get) => ({
       apiKey: null,
-      provider: 'huggingface',
+      provider: 'groq', // Set Groq as default provider
       isValidated: false,
       isValidating: false,
       
@@ -117,10 +127,13 @@ export const useApiKeyStore = create<ApiKeyStore>()(
             isValidating: false 
           });
           
-          // Store the validated key
-          const storedKeys = getStoredKeys();
-          storedKeys[provider] = key;
-          storeKeys(storedKeys);
+          // Only store if it's different from the env key
+          const envKey = import.meta.env[`VITE_${provider.toUpperCase()}_API_KEY`];
+          if (key !== envKey) {
+            const storedKeys = getStoredKeys();
+            storedKeys[provider] = key;
+            storeKeys(storedKeys);
+          }
           
           useNotificationStore.getState().addNotification({
             type: 'success',
@@ -148,7 +161,7 @@ export const useApiKeyStore = create<ApiKeyStore>()(
         set({ 
           provider,
           apiKey: savedKey || null,
-          isValidated: false 
+          isValidated: Boolean(savedKey) 
         });
         
         // If we have a saved key, validate it
@@ -165,25 +178,26 @@ export const useApiKeyStore = create<ApiKeyStore>()(
       clearApiKey: () => {
         const provider = get().provider;
         
-        // Remove the key for the current provider
-        const storedKeys = getStoredKeys();
-        delete storedKeys[provider];
-        storeKeys(storedKeys);
+        // Only clear if it's not the env key
+        const envKey = import.meta.env[`VITE_${provider.toUpperCase()}_API_KEY`];
+        const currentKey = get().apiKey;
         
-        set({ apiKey: null, isValidated: false });
-        
-        useNotificationStore.getState().addNotification({
-          type: 'info',
-          message: `${provider === 'huggingface' ? 'Hugging Face' : provider === 'groq' ? 'Groq' : 'OpenAI'} API key cleared`
-        });
+        if (currentKey && currentKey !== envKey) {
+          const storedKeys = getStoredKeys();
+          delete storedKeys[provider];
+          storeKeys(storedKeys);
+          
+          set({ apiKey: envKey || null, isValidated: Boolean(envKey) });
+          
+          useNotificationStore.getState().addNotification({
+            type: 'info',
+            message: `${provider === 'huggingface' ? 'Hugging Face' : provider === 'groq' ? 'Groq' : 'OpenAI'} API key cleared`
+          });
+        }
       },
 
       initializeFromStorage: () => {
-        const storedKeys = {
-          huggingface: import.meta.env.VITE_HUGGINGFACE_API_KEY || '',
-          groq: import.meta.env.VITE_GROQ_API_KEY || '',
-          openai: import.meta.env.VITE_OPENAI_API_KEY || ''
-        };
+        const storedKeys = getStoredKeys();
         const provider = get().provider;
         const savedKey = storedKeys[provider];
         

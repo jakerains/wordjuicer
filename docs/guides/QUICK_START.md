@@ -10,40 +10,46 @@ Word Juicer is a powerful audio transcription application that supports multiple
 - Click "Install" when prompted to install the PWA
 - Alternatively, use Word Juicer directly in your browser
 
-### 2. API Key Setup
+### 2. Start Transcribing
+1. Go to the Transcribe tab
+2. Either:
+   - Drag and drop your audio file(s)
+   - Click "Select Audio Files" to choose files
+3. Your file will be transcribed using our built-in Groq trial key
+
+### 3. API Key Setup (Optional)
+For expanded limits and better performance, you can use your own API key:
+
 1. Choose your preferred service provider:
+   - [Groq](https://console.groq.com/keys) (Recommended)
    - [OpenAI](https://platform.openai.com/api-keys)
-   - [Groq](https://console.groq.com/keys)
    - [Hugging Face](https://huggingface.co/settings/tokens)
 2. Generate an API key from your chosen provider
 3. In Word Juicer, go to Settings
 4. Select your provider and enter your API key
 5. Click "Validate" to verify your key
 
-### 3. Transcribing Audio
-1. Go to the Transcribe tab
-2. Either:
-   - Drag and drop your audio file(s)
-   - Click "Select Audio Files" to choose files
-3. Supported formats: MP3, WAV, M4A, FLAC
-4. Maximum file size: 100MB per file
+### 4. Supported Formats
+- MP3
+- WAV
+- M4A
+- FLAC
 
-### 4. Features
+### 5. File Limitations
+- Maximum file size: 100MB per file
+- Supported audio length: Up to 4 hours
+
+### 6. Features
 - **Multiple Files**: Upload multiple files at once
-- **Queue System**: Files are processed sequentially
-- **Progress Tracking**: Monitor transcription progress in real-time
-- **Service Health**: Automatic service switching if one provider is down
-- **Caching**: Previously transcribed files are cached for faster access
-- **Export Options**: Download transcriptions in various formats
+- **Real-time Progress**: See transcription progress in real-time
+- **Export Options**: Save transcriptions in various formats
+- **Offline Support**: Install as PWA for offline access
+- **Auto-save**: Never lose your transcriptions
 
-### 5. Managing Transcriptions
-1. View transcriptions in the History tab
-2. Export options:
-   - Text (.txt)
-   - Subtitles (.srt)
-   - Word Document (.docx)
-   - PDF (.pdf)
-3. Search and filter your transcription history
+## Next Steps
+- Check out our [Feature Documentation](./FEATURES.md) for advanced features
+- Visit our [Troubleshooting Guide](./TROUBLESHOOTING.md) if you need help
+- Join our community discussions for tips and support
 
 ## Tips
 - Use shorter audio files for faster processing

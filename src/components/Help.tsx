@@ -1,5 +1,5 @@
 import React from 'react';
-import { HelpCircle, FileQuestion, Keyboard, Zap, Server, Download, Settings, Bell } from 'lucide-react';
+import { HelpCircle, FileQuestion, Keyboard, Zap, Server, Download, Settings, Bell, FileAudio } from 'lucide-react';
 import { APP_VERSION } from '../utils/version';
 
 interface FAQItem {
@@ -13,6 +13,18 @@ interface ShortcutItem {
 }
 
 const faqs: FAQItem[] = [
+  {
+    question: 'Do I need an API key to start?',
+    answer: 'No! You can start transcribing immediately with our built-in Groq trial key. For expanded limits and better performance, you can add your own API key from Groq, OpenAI, or Hugging Face in Settings.',
+  },
+  {
+    question: 'Which transcription providers are available?',
+    answer: 'We support Groq (recommended), OpenAI, and Hugging Face. All providers use the Whisper model for high-quality transcription.',
+  },
+  {
+    question: 'How do I get started with transcription?',
+    answer: 'Simply go to the Transcribe page and drag & drop your audio file. We\'ll use the built-in Groq trial key by default, or you can add your own API key in Settings for expanded limits.',
+  },
   {
     question: 'What audio formats are supported?',
     answer: 'Text Juicer supports MP3, WAV, M4A, and OGG audio formats.',
@@ -28,14 +40,6 @@ const faqs: FAQItem[] = [
   {
     question: 'Is my audio data private?',
     answer: 'Yes! Your audio files are processed directly through your chosen provider\'s API. We never store or transmit your audio files through our own servers. All transcription results are stored locally on your device.',
-  },
-  {
-    question: 'Which transcription providers are available?',
-    answer: 'We support Hugging Face, Groq, and OpenAI. All providers use the Whisper model for high-quality transcription.',
-  },
-  {
-    question: 'How do I get started with transcription?',
-    answer: 'First, add your API key for any provider in Settings. Then return to the Transcribe page where you can drag & drop your audio file.',
   },
   {
     question: 'What export formats are available?',
@@ -76,19 +80,29 @@ export function Help() {
             <Zap className="w-6 h-6 text-[#A2AD1E]" />
           </div>
           <div>
-            <h2 className="text-xl font-semibold text-gray-100">What's New in {APP_VERSION}</h2>
-            <p className="text-gray-400 text-sm">Released March 19, 2024</p>
+            <h2 className="text-xl font-semibold text-gray-100">What's New in v1.0.6</h2>
+            <p className="text-gray-400 text-sm">Released March 21, 2024</p>
           </div>
         </div>
         
         <div className="space-y-4 text-gray-300">
           <div className="space-y-2">
-            <h3 className="font-medium">Fixed</h3>
+            <h3 className="font-medium">New Features</h3>
             <ul className="list-disc list-inside space-y-2 text-gray-400">
-              <li>Improved sidebar layout for iOS devices</li>
-              <li>Fixed bottom menu items being cut off</li>
-              <li>Added proper viewport height handling</li>
-              <li>Enhanced menu item spacing and alignment</li>
+              <li>Added built-in Groq trial key for instant transcription</li>
+              <li>Updated UI to show trial key status</li>
+              <li>Made Groq the default transcription provider</li>
+              <li>Enhanced Quick Start guide with clearer instructions</li>
+            </ul>
+          </div>
+          
+          <div className="space-y-2">
+            <h3 className="font-medium">Improved</h3>
+            <ul className="list-disc list-inside space-y-2 text-gray-400">
+              <li>Streamlined transcription workflow with trial key</li>
+              <li>Updated FAQs with trial key information</li>
+              <li>Enhanced Settings UI for API key management</li>
+              <li>Better visibility of trial key status in main UI</li>
             </ul>
           </div>
         </div>
@@ -105,22 +119,22 @@ export function Help() {
         
         <div className="space-y-6">
           <div className="flex items-start gap-4 p-4 bg-gray-800/40 rounded-lg border border-gray-700/30">
-            <div className="p-2 bg-gray-700/50 rounded-full">
-              <Settings className="w-5 h-5 text-gray-300" />
+            <div className="p-2 bg-[#A2AD1E]/20 rounded-full">
+              <FileAudio className="w-5 h-5 text-[#A2AD1E]" />
             </div>
             <div>
-              <h3 className="text-gray-200 font-medium mb-2">1. Configure API Provider</h3>
-              <p className="text-gray-400">Visit Settings to add your API key for any provider (Hugging Face, Groq, or OpenAI).</p>
+              <h3 className="text-gray-200 font-medium mb-2">1. Start Transcribing</h3>
+              <p className="text-gray-400">Go to the Transcribe page and drop your audio files. We'll use our built-in Groq trial key automatically.</p>
             </div>
           </div>
 
           <div className="flex items-start gap-4 p-4 bg-gray-800/40 rounded-lg border border-gray-700/30">
             <div className="p-2 bg-gray-700/50 rounded-full">
-              <Server className="w-5 h-5 text-gray-300" />
+              <Settings className="w-5 h-5 text-gray-300" />
             </div>
             <div>
-              <h3 className="text-gray-200 font-medium mb-2">2. Select Provider</h3>
-              <p className="text-gray-400">Choose your preferred provider from the available options on the Transcribe page.</p>
+              <h3 className="text-gray-200 font-medium mb-2">2. Optional: Add Your Own Key</h3>
+              <p className="text-gray-400">For expanded limits, add your own API key in Settings from Groq, OpenAI, or Hugging Face.</p>
             </div>
           </div>
 
@@ -130,7 +144,7 @@ export function Help() {
             </div>
             <div>
               <h3 className="text-gray-200 font-medium mb-2">3. Upload Audio</h3>
-              <p className="text-gray-400">Drag & drop your audio file or click to browse. Supported formats: MP3, WAV, M4A, OGG.</p>
+              <p className="text-gray-400">Drag & drop your audio files or click to browse. Supports MP3, WAV, M4A, OGG.</p>
             </div>
           </div>
 

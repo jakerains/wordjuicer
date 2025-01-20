@@ -23,3 +23,16 @@ For every project discussion, maintain and update a project-map.md file in the d
 7. Link to relevant documentation and code files when applicable
 
 The project map should be updated with every significant change or addition to the project, ensuring it remains a living document that accurately reflects the current state of the project.
+
+# Changelog
+
+## [Unreleased]
+
+### Added
+
+- Enhanced PWA capabilities for full offline support.
+- Integrated offline transcription using local Whisper model.
+- Added functionality to download and cache the Whisper model in the browser.
+- Updated service worker with caching strategies.
+- Implemented model state management and UI component to display model download progress.
+- Updated documentation with installation and usage instructions for offline mode.

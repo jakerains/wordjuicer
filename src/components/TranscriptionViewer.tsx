@@ -56,7 +56,7 @@ export function TranscriptionViewer({ transcription, timestamps }: Transcription
         return (
           <div className="space-y-4">
             <p className="text-sm sm:text-base text-gray-200 leading-relaxed tracking-wide whitespace-pre-wrap">
-              {timestamps.map(t => t.text).join('\n\n')}
+              {transcription}
             </p>
           </div>
         );

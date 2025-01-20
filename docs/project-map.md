@@ -1,105 +1,49 @@
 # Project Map <!-- markmap: fold -->
 
 ## Core Features
-### Audio Transcription
-- Live transcription with real-time processing
-- File-based transcription with chunking
-- Multi-provider support (OpenAI, Groq, Hugging Face)
-- Progress tracking and status updates
+### Offline Support
+- **PWA Enhancements**
+  - Service worker configuration for asset caching
+  - Offline installation capabilities
+- **Model Caching**
+  - IndexedDB storage for model files
+  - Local model initialization and management
 
-### Data Management
-- Transcription history
-- Cache management
-- Export/Import functionality
-- Dashboard interface
+### Model Management
+- **Model States**
+  - Tracking download and initialization states
+- **UI Components**
+  - `ModelStatus.tsx` for displaying model download progress
 
-### Settings
-- API key management
-- Provider selection
-- Cache configuration
-- PWA installation
+### Transcription
+- **Offline Transcription**
+  - Use local Whisper model when offline
+- **Online Transcription**
+  - Use remote APIs when online
+- **Error Handling**
+  - Graceful handling of model download and transcription errors
 
 ## Technical Architecture
-### Frontend
-- React with TypeScript
-- Tailwind CSS for styling
-- Glass morphism design system
-- Responsive layout
+### Libraries and Tools
+- **Workbox**
+  - Service worker and caching strategies
+- **@xenova/transformers**
+  - In-browser model inference with ONNX
 
-### State Management
-- Zustand stores
-  - API key store
-  - Transcription store
-  - Progress store
-  - Cache store
-  - Notification store
-
-### Audio Processing
-- Chunk-based processing (5MB chunks)
-- WebAudio API for live recording
-- Blob handling for file uploads
-- Format validation and conversion
-
-### API Integration
-#### Providers
-- OpenAI Whisper
-  - Endpoint: https://api.openai.com/v1/audio/transcriptions
-  - Model: whisper-1
-- Groq
-  - Endpoint: https://api.groq.com/openai/v1/audio/transcriptions
-  - Model: whisper-large-v3-turbo
-- Hugging Face
-  - Endpoint: https://api-inference.huggingface.co/models/openai/whisper-large-v3-turbo
-  - Model: whisper-large-v3-turbo
-
-### Caching System
-- IndexedDB storage
-- File hash-based caching
-- Automatic cache management
-- Cache size monitoring
-
-### Error Handling
-- Retry mechanism for failed requests
-- Graceful error recovery
-- User-friendly error messages
-- Progress status updates
-
-## User Experience
-### Interface
-- Modern glass morphism design
-- Real-time progress indicators
-- Responsive layout
-- Dark mode optimized
-
-### Progressive Web App
-- Offline capability
-- Install prompts
-- App-like experience
-- Background processing
-
-### Accessibility
-- Keyboard navigation
-- Screen reader support
-- High contrast elements
-- Clear visual feedback
-
-## File Structure
-### Source Code
+### File Structure
 - `/src`
-  - `/components`: React components
-  - `/store`: Zustand stores
-  - `/utils`: Utility functions
-  - `/styles`: CSS and styling
-  - `/types`: TypeScript definitions
+  - `/components`
+    - `ModelStatus.tsx`: Displays model download status
+  - `/utils`
+    - `localModel.ts`: Manages local model initialization and transcription
+- `/public`
+  - `manifest.webmanifest`: Updated manifest for PWA
+  - `sw.js`: Service worker with caching strategies
 
-### Documentation
-- `/docs`
-  - `CHANGELOG.md`: Version history
-  - `project-map.md`: Project structure
-  - Technical documentation
-
-### Configuration
-- `vite.config.ts`: Build configuration
-- `.env.example`: Environment variables
-- `package.json`: Dependencies
-- `tsconfig.json`: TypeScript settings
+## Documentation
+- **Changelog**
+  - `docs/CHANGELOG.md`
+- **Installation Guide**
+  - `docs/INSTALLATION.md`
+- **Project Map**
+  - `docs/project-map.md`

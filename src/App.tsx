@@ -22,6 +22,8 @@ import { GlassButton } from './components/ui/GlassButton';
 import { initGA, pageview, trackTranscriptionStart, trackTranscriptionComplete, trackExport, trackError, trackFeatureUsage, trackInstallEvent, trackReturnVisit, trackAPIError } from './utils/analytics';
 import { useApiKeyStore } from './store/apiKeyStore';
 import { motion } from 'framer-motion';
+import { initializeLocalModel, runLocalTranscription, getModelState, ModelState } from './utils/localModel';
+import { ModelStatus } from './components/ModelStatus';
 
 // Define error type with status
 interface APIError extends Error {
@@ -38,6 +40,8 @@ function App() {
   const [currentFile, setCurrentFile] = useState<string>('');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { provider } = useApiKeyStore();
+  const [modelState, setModelState] = useState<string>(ModelState.IDLE);
+  const [modelProgress, setModelProgress] = useState<number>(0);
 
   const resetTranscription = () => {
     setTranscription('');
@@ -81,6 +85,25 @@ function App() {
     pageview(`/${activeView}`);
   }, [activeView]);
 
+  // Listen for model state changes
+  useEffect(() => {
+    const handleModelStateChange = (event: any) => {
+      setModelState(event.detail.state);
+    };
+
+    const handleModelProgress = (event: any) => {
+      setModelProgress(event.detail.progress);
+    };
+
+    window.addEventListener('modelStateChange', handleModelStateChange);
+    window.addEventListener('modelDownloadProgress', handleModelProgress);
+
+    return () => {
+      window.removeEventListener('modelStateChange', handleModelStateChange);
+      window.removeEventListener('modelDownloadProgress', handleModelProgress);
+    };
+  }, []);
+
   const handleFileSelect = async (file: File) => {
     try {
       setIsLoading(true);
@@ -88,56 +111,70 @@ function App() {
       setError(null);
       setProgress(0);
       
-      trackTranscriptionStart('auto', provider as 'openai' | 'groq' | 'huggingface');
-      trackFeatureUsage('transcription_start');
-      
-      const startTime = Date.now();
-      
-      // Simulate progress updates
-      const progressInterval = setInterval(() => {
-        setProgress(prev => {
-          if (prev >= 90) {
-            clearInterval(progressInterval);
-            return prev;
-          }
-          return prev + 10;
+      // Check network status
+      if (!navigator.onLine) {
+        // Offline mode - use local model
+        await initializeLocalModel('openai/whisper-tiny');
+
+        const result = await runLocalTranscription(file, 'openai/whisper-tiny');
+
+        // Update transcription state
+        setTranscription(result.text);
+        setTimestamps(result.timestamps);
+        setError(null);
+      } else {
+        // Online mode - existing transcription logic
+        trackTranscriptionStart('auto', provider as 'openai' | 'groq' | 'huggingface');
+        trackFeatureUsage('transcription_start');
+        
+        const startTime = Date.now();
+        
+        // Simulate progress updates
+        const progressInterval = setInterval(() => {
+          setProgress(prev => {
+            if (prev >= 90) {
+              clearInterval(progressInterval);
+              return prev;
+            }
+            return prev + 10;
+          });
+        }, 1000);
+        
+        const result = await transcribeAudio(file);
+        
+        // Complete the progress
+        clearInterval(progressInterval);
+        setProgress(100);
+        
+        const duration = (Date.now() - startTime) / 1000;
+        trackTranscriptionComplete(duration, 'auto', provider as 'openai' | 'groq' | 'huggingface', file.size);
+        trackFeatureUsage('transcription_complete');
+        
+        // Add to transcription store
+        addTranscription({
+          id: crypto.randomUUID(),
+          filename: file.name,
+          text: result.text,
+          timestamps: result.timestamps,
+          duration: duration,
+          size: file.size,
+          date: new Date(),
+          status: 'completed'
         });
-      }, 1000);
-      
-      const result = await transcribeAudio(file);
-      
-      // Complete the progress
-      clearInterval(progressInterval);
-      setProgress(100);
-      
-      const duration = (Date.now() - startTime) / 1000;
-      trackTranscriptionComplete(duration, 'auto', provider as 'openai' | 'groq' | 'huggingface', file.size);
-      trackFeatureUsage('transcription_complete');
-      
-      // Add to transcription store
-      addTranscription({
-        id: crypto.randomUUID(),
-        filename: file.name,
-        text: result.text,
-        timestamps: result.timestamps,
-        duration: duration,
-        size: file.size,
-        date: new Date(),
-        status: 'completed'
-      });
 
-      // Add success notification
-      addNotification({
-        type: 'success',
-        message: `Successfully transcribed ${file.name}`
-      });
+        // Add success notification
+        addNotification({
+          type: 'success',
+          message: `Successfully transcribed ${file.name}`
+        });
 
-      // Set the transcription and timestamps state
-      console.log('Setting transcription:', result.text);
-      console.log('Setting timestamps:', result.timestamps);
-      setTranscription(result.text || '');  // Ensure we have a string even if text is undefined
-      setTimestamps(result.timestamps || []);  // Ensure we have an array even if timestamps is undefined
-      setError(null);  // Clear any previous errors
+        // Set the transcription and timestamps state
+        console.log('Setting transcription:', result.text);
+        console.log('Setting timestamps:', result.timestamps);
+        setTranscription(result.text || '');  // Ensure we have a string even if text is undefined
+        setTimestamps(result.timestamps || []);  // Ensure we have an array even if timestamps is undefined
+        setError(null);  // Clear any previous errors
+      }
     } catch (err) {
       const error = err as APIError;
       const errorMessage = error.message || 'Unknown error';
@@ -547,6 +584,7 @@ function App() {
           </motion.div>
         </motion.div>
       </motion.div>
+      <ModelStatus />
     </div>
   );
 }
