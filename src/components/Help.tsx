@@ -80,29 +80,29 @@ export function Help() {
             <Zap className="w-6 h-6 text-[#A2AD1E]" />
           </div>
           <div>
-            <h2 className="text-xl font-semibold text-gray-100">What's New in v1.0.6</h2>
+            <h2 className="text-xl font-semibold text-gray-100">What's New in v1.0.7</h2>
             <p className="text-gray-400 text-sm">Released March 21, 2024</p>
           </div>
         </div>
         
         <div className="space-y-4 text-gray-300">
           <div className="space-y-2">
-            <h3 className="font-medium">New Features</h3>
+            <h3 className="font-medium">Fixed</h3>
             <ul className="list-disc list-inside space-y-2 text-gray-400">
-              <li>Added built-in Groq trial key for instant transcription</li>
-              <li>Updated UI to show trial key status</li>
-              <li>Made Groq the default transcription provider</li>
-              <li>Enhanced Quick Start guide with clearer instructions</li>
+              <li>Fixed DOCX and PDF export functionality in transcription history</li>
+              <li>Fixed Delete All button functionality in history view</li>
+              <li>Enhanced transcription animation display</li>
+              <li>Added proper error handling and notifications for exports</li>
+              <li>Improved state management for transcription history</li>
             </ul>
           </div>
           
           <div className="space-y-2">
-            <h3 className="font-medium">Improved</h3>
+            <h3 className="font-medium">Changed</h3>
             <ul className="list-disc list-inside space-y-2 text-gray-400">
-              <li>Streamlined transcription workflow with trial key</li>
-              <li>Updated FAQs with trial key information</li>
-              <li>Enhanced Settings UI for API key management</li>
-              <li>Better visibility of trial key status in main UI</li>
+              <li>Made transcription animation larger and more prominent</li>
+              <li>Enhanced export error handling with user notifications</li>
+              <li>Improved history view UI with empty state message</li>
             </ul>
           </div>
         </div>
