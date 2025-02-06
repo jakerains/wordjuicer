@@ -23,6 +23,8 @@ export function GlassButton({
     disabled:opacity-50 disabled:cursor-not-allowed
     backdrop-blur-md shadow-lg hover:shadow-xl
     text-shadow-sm
+    relative z-10
+    cursor-pointer
   `;
 
   const variants = {

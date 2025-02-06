@@ -164,7 +164,10 @@ export function History() {
               <GlassButton
                 variant="danger"
                 size="sm"
-                onClick={() => setShowDeleteConfirm(true)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowDeleteConfirm(true);
+                }}
                 disabled={!transcriptions.length}
                 icon={<Trash2 className="w-4 h-4" />}
               >
@@ -237,7 +240,7 @@ export function History() {
       )}
 
       {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100]">
           <div className="bg-gray-900/90 p-6 rounded-2xl border border-gray-700/30 shadow-xl max-w-md w-full mx-4">
             <h3 className="text-lg font-semibold text-white mb-2">Delete All Transcriptions?</h3>
             <p className="text-white/70 mb-6">
