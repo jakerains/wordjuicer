@@ -80,29 +80,29 @@ export function Help() {
             <Zap className="w-6 h-6 text-[#A2AD1E]" />
           </div>
           <div>
-            <h2 className="text-xl font-semibold text-gray-100">What's New in v1.0.7</h2>
-            <p className="text-gray-400 text-sm">Released March 21, 2024</p>
+            <h2 className="text-xl font-semibold text-gray-100">What's New in v1.0.8</h2>
+            <p className="text-gray-400 text-sm">Released February 6, 2025</p>
           </div>
         </div>
         
         <div className="space-y-4 text-gray-300">
           <div className="space-y-2">
-            <h3 className="font-medium">Fixed</h3>
+            <h3 className="font-medium">New Features</h3>
             <ul className="list-disc list-inside space-y-2 text-gray-400">
-              <li>Fixed DOCX and PDF export functionality in transcription history</li>
-              <li>Fixed Delete All button functionality in history view</li>
-              <li>Enhanced transcription animation display</li>
-              <li>Added proper error handling and notifications for exports</li>
-              <li>Improved state management for transcription history</li>
+              <li>Added direct URL navigation support for all pages</li>
+              <li>Added ability to bookmark specific pages</li>
+              <li>Added support for browser back/forward navigation</li>
+              <li>Enhanced URL sharing capabilities</li>
             </ul>
           </div>
           
           <div className="space-y-2">
-            <h3 className="font-medium">Changed</h3>
+            <h3 className="font-medium">Improved</h3>
             <ul className="list-disc list-inside space-y-2 text-gray-400">
-              <li>Made transcription animation larger and more prominent</li>
-              <li>Enhanced export error handling with user notifications</li>
-              <li>Improved history view UI with empty state message</li>
+              <li>Updated navigation system for better user experience</li>
+              <li>Improved page transitions and state management</li>
+              <li>Enhanced PWA configuration for better routing support</li>
+              <li>Streamlined navigation between pages</li>
             </ul>
           </div>
         </div>

@@ -5,7 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.6] - 2024-03-21
+## [1.0.8] - 2025-02-06
+
+### Added
+- Implemented direct URL navigation support
+- Added client-side routing with React Router
+- Added ability to bookmark specific pages
+- Added support for browser back/forward navigation
+
+### Changed
+- Updated navigation system to use URLs instead of state
+- Improved page transitions and state management
+- Enhanced URL sharing capabilities
+- Updated PWA configuration for better routing support
+
+## [1.0.7] - 2025-02-06
+
+### Fixed
+- Fixed DOCX and PDF export functionality in transcription history
+- Fixed Delete All button functionality in history view
+- Enhanced transcription animation display
+- Added proper error handling and notifications for exports
+- Improved state management for transcription history
+
+### Changed
+- Made transcription animation larger and more prominent
+- Enhanced export error handling with user notifications
+- Improved history view UI with empty state message
+
+## [1.0.6] - 2025-01-06
 
 ### Added
 - Built-in Groq trial key for instant transcription
@@ -63,17 +91,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Improved scrolling behavior
   - Enhanced menu item spacing and alignment
   - Better text overflow handling
-
-## [1.0.7] - 2024-03-21
-
-### Fixed
-- Fixed DOCX and PDF export functionality in transcription history
-- Fixed Delete All button functionality in history view
-- Enhanced transcription animation display
-- Added proper error handling and notifications for exports
-- Improved state management for transcription history
-
-### Changed
-- Made transcription animation larger and more prominent
-- Enhanced export error handling with user notifications
-- Improved history view UI with empty state message

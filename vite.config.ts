@@ -7,80 +7,60 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'juicerbanner-wide.png'],
+      includeAssets: [
+        'favicon.ico',
+        'juicericons/*.png',
+        'juicerbanner-wide.png',
+        'Animation - 1733141028806.json',
+        'Animation - loading.json'
+      ],
       manifest: {
         name: 'Word Juicer',
         short_name: 'Word Juicer',
-        description: 'Audio transcription made easy',
+        description: 'Modern audio transcription app',
         theme_color: '#A2AD1E',
-        background_color: '#ffffff',
+        background_color: '#000000',
         display: 'standalone',
         icons: [
           {
-            src: '/juicericons/icon-48.png',
-            sizes: '48x48',
-            type: 'image/png',
-            purpose: 'any'
-          },
-          {
-            src: '/juicericons/icon-72.png',
+            src: '/juicericons/icon-72x72.png',
             sizes: '72x72',
-            type: 'image/png',
-            purpose: 'any'
+            type: 'image/png'
           },
           {
-            src: '/juicericons/icon-96.png',
+            src: '/juicericons/icon-96x96.png',
             sizes: '96x96',
-            type: 'image/png',
-            purpose: 'any'
+            type: 'image/png'
           },
           {
-            src: '/juicericons/icon-128.png',
+            src: '/juicericons/icon-128x128.png',
             sizes: '128x128',
-            type: 'image/png',
-            purpose: 'any'
+            type: 'image/png'
           },
           {
-            src: '/juicericons/icon-144.png',
+            src: '/juicericons/icon-144x144.png',
             sizes: '144x144',
-            type: 'image/png',
-            purpose: 'any'
+            type: 'image/png'
           },
           {
-            src: '/juicericons/icon-152.png',
+            src: '/juicericons/icon-152x152.png',
             sizes: '152x152',
-            type: 'image/png',
-            purpose: 'any'
+            type: 'image/png'
           },
           {
-            src: '/juicericons/icon-180.png',
-            sizes: '180x180',
-            type: 'image/png',
-            purpose: 'any'
-          },
-          {
-            src: '/juicericons/icon-192.png',
+            src: '/juicericons/icon-192x192.png',
             sizes: '192x192',
-            type: 'image/png',
-            purpose: 'any'
+            type: 'image/png'
           },
           {
-            src: '/juicericons/icon-256.png',
-            sizes: '256x256',
-            type: 'image/png',
-            purpose: 'any'
+            src: '/juicericons/icon-384x384.png',
+            sizes: '384x384',
+            type: 'image/png'
           },
           {
-            src: '/juicericons/icon-512.png',
+            src: '/juicericons/icon-512x512.png',
             sizes: '512x512',
-            type: 'image/png',
-            purpose: 'any'
-          },
-          {
-            src: '/juicericons/icon-1024.png',
-            sizes: '1024x1024',
-            type: 'image/png',
-            purpose: 'maskable'
+            type: 'image/png'
           }
         ]
       },
@@ -137,8 +117,10 @@ export default defineConfig({
     })
   ],
   server: {
-    port: 5173,
-    strictPort: true,
+    port: 3000
+  },
+  preview: {
+    port: 3000
   },
   build: {
     sourcemap: true,

@@ -1,16 +1,18 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Key, Save, Upload, Server, Check, X, Download } from 'lucide-react';
 import { GlassButton } from './ui/GlassButton';
 import { useTranscriptionStore } from '../store/transcriptionStore';
 import { useApiKeyStore, ApiProvider } from '../store/apiKeyStore';
 import { useNotificationStore } from '../store/notificationStore';
 import { CacheManager } from './CacheManager';
+import { useNavigate } from 'react-router-dom';
 
 interface SettingsProps {
-  setActiveView: (view: 'dashboard' | 'transcribe' | 'history' | 'settings' | 'help') => void;
+  setActiveView: (view: string) => void;
 }
 
 export function Settings({ setActiveView }: SettingsProps) {
+  const navigate = useNavigate();
   const [isPWAInstalled, setIsPWAInstalled] = React.useState(false);
   const [deferredPrompt, setDeferredPrompt] = React.useState<any>(null);
   const [selectedModelSize, setSelectedModelSize] = React.useState('large');
@@ -105,9 +107,16 @@ export function Settings({ setActiveView }: SettingsProps) {
     }
   };
 
-  const handleProviderChange = (newProvider: ApiProvider) => {
+  const handleProviderChange = async (newProvider: string) => {
     setProvider(newProvider);
-    setInputKey('');
+    if (newProvider === 'groq' && !inputKey && import.meta.env.VITE_GROQ_API_KEY) {
+      addNotification({
+        type: 'success',
+        message: 'Using trial key for Groq'
+      });
+      setActiveView('transcribe');
+      navigate('/');
+    }
   };
 
   const handleModelDownload = async () => {

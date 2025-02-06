@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { DropZone } from './components/DropZone';
 import { TranscriptionViewer } from './components/TranscriptionViewer';
 import { ExportOptions } from './components/ExportOptions';
@@ -30,18 +31,33 @@ interface APIError extends Error {
   status?: number;
 }
 
-function App() {
+function AppContent() {
   const [transcription, setTranscription] = useState('');
   const [timestamps, setTimestamps] = useState<Array<{ time: number; text: string }>>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
-  const [activeView, setActiveView] = useState<'dashboard' | 'transcribe' | 'history' | 'settings' | 'help'>('transcribe');
   const [currentFile, setCurrentFile] = useState<string>('');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { provider } = useApiKeyStore();
   const [modelState, setModelState] = useState<string>(ModelState.IDLE);
   const [modelProgress, setModelProgress] = useState<number>(0);
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // Convert path to view type
+  const getViewFromPath = (path: string): 'dashboard' | 'transcribe' | 'history' | 'settings' | 'help' => {
+    const pathWithoutSlash = path.slice(1);
+    if (pathWithoutSlash === '') return 'transcribe';
+    return (pathWithoutSlash || 'transcribe') as any;
+  };
+
+  const activeView = getViewFromPath(location.pathname);
+
+  // Handle view changes through navigation
+  const handleViewChange = (view: string) => {
+    navigate(view === 'transcribe' ? '/' : `/${view}`);
+  };
 
   const resetTranscription = () => {
     setTranscription('');
@@ -273,7 +289,7 @@ function App() {
       <div className="flex min-h-screen relative">
         {/* Desktop Sidebar */}
         <div className="hidden lg:block w-64 fixed inset-y-0 left-0 z-50">
-          <Sidebar activeView={activeView} setActiveView={setActiveView} />
+          <Sidebar activeView={activeView} setActiveView={handleViewChange} />
         </div>
 
         {/* Mobile Sidebar */}
@@ -281,10 +297,13 @@ function App() {
           <div className="lg:hidden fixed inset-0 z-50">
             <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)} />
             <div className="absolute left-0 top-0 bottom-0 w-64 z-50">
-              <Sidebar activeView={activeView} setActiveView={(view) => {
-                setActiveView(view);
-                setIsMobileMenuOpen(false);
-              }} />
+              <Sidebar 
+                activeView={activeView} 
+                setActiveView={(view) => {
+                  handleViewChange(view);
+                  setIsMobileMenuOpen(false);
+                }} 
+              />
             </div>
           </div>
         )}
@@ -303,7 +322,7 @@ function App() {
               <div className="flex items-center gap-4">
                 <NotificationCenter />
                 <button 
-                  onClick={() => activeView === 'settings' ? setActiveView('transcribe') : setActiveView('settings')}
+                  onClick={() => activeView === 'settings' ? handleViewChange('transcribe') : handleViewChange('settings')}
                   className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
                   aria-label="Toggle Settings"
                 >
@@ -326,46 +345,46 @@ function App() {
           </div>
 
           <div className="space-y-4 lg:space-y-8 max-w-4xl mx-auto">
-            {activeView === 'dashboard' && <Dashboard />}
-            {activeView === 'transcribe' && (
-              <div className="space-y-8">
-                {!isLoading && <DropZone onFileSelect={handleFileSelect} isLoading={isLoading} />}
-
-                {error && (
-                  <div className="w-full p-4 bg-white/10 backdrop-blur-md border border-red-500/20 rounded-[20px] text-red-300">
-                    {error}
-                  </div>
-                )}
-                
-                {isLoading && (
-                  <div className="w-full bg-white/10 backdrop-blur-md rounded-[20px] p-8 border border-white/20">
-                    <TranscriptionProgress />
-                  </div>
-                )}
-                
-                {transcription && !isLoading && (
-                  <div className="space-y-6">
-                    <div className="flex items-center justify-between gap-2 sm:gap-4">
-                      <div className="bg-white/10 backdrop-blur-md rounded-[16px] p-1 sm:p-2">
-                        <GlassButton
-                          variant="dark"
-                          size="sm"
-                          onClick={resetTranscription}
-                          icon={<FileText className="w-4 h-4" />}
-                        >
-                          <span className="text-xs sm:text-sm">New</span>
-                        </GlassButton>
-                      </div>
-                      <ExportOptions onExport={handleExport} disabled={isLoading} />
+            <Routes>
+              <Route path="/" element={
+                <div className="space-y-8">
+                  {!isLoading && <DropZone onFileSelect={handleFileSelect} isLoading={isLoading} />}
+                  {error && (
+                    <div className="w-full p-4 bg-white/10 backdrop-blur-md border border-red-500/20 rounded-[20px] text-red-300">
+                      {error}
                     </div>
-                    <TranscriptionViewer transcription={transcription} timestamps={timestamps} />
-                  </div>
-                )}
-              </div>
-            )}
-            {activeView === 'history' && <History />}
-            {activeView === 'settings' && <Settings setActiveView={setActiveView} />}
-            {activeView === 'help' && <Help />}
+                  )}
+                  {isLoading && (
+                    <div className="w-full bg-white/10 backdrop-blur-md rounded-[20px] p-8 border border-white/20">
+                      <TranscriptionProgress />
+                    </div>
+                  )}
+                  {transcription && !isLoading && (
+                    <div className="space-y-6">
+                      <div className="flex items-center justify-between gap-2 sm:gap-4">
+                        <div className="bg-white/10 backdrop-blur-md rounded-[16px] p-1 sm:p-2">
+                          <GlassButton
+                            variant="dark"
+                            size="sm"
+                            onClick={resetTranscription}
+                            icon={<FileText className="w-4 h-4" />}
+                          >
+                            <span className="text-xs sm:text-sm">New</span>
+                          </GlassButton>
+                        </div>
+                        <ExportOptions onExport={handleExport} disabled={isLoading} />
+                      </div>
+                      <TranscriptionViewer transcription={transcription} timestamps={timestamps} />
+                    </div>
+                  )}
+                </div>
+              } />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/history" element={<History />} />
+              <Route path="/settings" element={<Settings setActiveView={handleViewChange} />} />
+              <Route path="/help" element={<Help />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
           </div>
           </main>
           <footer className="w-full text-center py-2 text-white/80 border-t border-white/10">
@@ -586,6 +605,14 @@ function App() {
       </motion.div>
       <ModelStatus />
     </div>
+  );
+}
+
+function App() {
+  return (
+    <Router>
+      <AppContent />
+    </Router>
   );
 }
 
