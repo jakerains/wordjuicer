@@ -1,0 +1,8 @@
+---
+description: When we're updating to a new version of the app.
+globs: 
+---
+when we update to a new version of the app, we want to 
+    • update the app UI at the bottom where it says "v1.x.x"
+    • Add a new entry to [CHANGELOG.md](mdc:docs/CHANGELOG.md) - remember we never want to rewrite or overwrite whats in here, only add to it. 
+    • Make sure the [README.md](mdc:README.md) and [project-map.md](mdc:docs/project-map.md) is always up-to-date as well with any new version. 

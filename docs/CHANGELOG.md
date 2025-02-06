@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.6] - 2024-03-21
+
+### Added
+- Built-in Groq trial key for instant transcription
+- Trial key status display in UI
+- Made Groq the default transcription provider
+- Enhanced Quick Start guide with clearer instructions
+
+### Changed
+- Streamlined transcription workflow with trial key
+- Updated FAQs with trial key information
+- Enhanced Settings UI for API key management
+- Improved visibility of trial key status in main UI
+
 ## [1.0.0] - 2024-03-19
 
 ### Added
@@ -49,3 +63,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Improved scrolling behavior
   - Enhanced menu item spacing and alignment
   - Better text overflow handling
+
+## [1.0.7] - 2024-03-21
+
+### Fixed
+- Fixed DOCX and PDF export functionality in transcription history
+- Fixed Delete All button functionality in history view
+- Enhanced transcription animation display
+- Added proper error handling and notifications for exports
+- Improved state management for transcription history
+
+### Changed
+- Made transcription animation larger and more prominent
+- Enhanced export error handling with user notifications
+- Improved history view UI with empty state message

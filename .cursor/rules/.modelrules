@@ -1,0 +1,8 @@
+the model we want to use across all three services is whisper-large-v3-turbo.
+
+huggingface endpoint: https://api-inference.huggingface.co/models/openai/whisper-large-v3-turbo
+huggingface model: openai/whisper-large-v3-turbo
+groq endpoint: https://api.groq.com/openai/v1/chat/completions
+groq model: whisper-large-v3-turbo
+openai endpoint: https://api.openai.com/v1/chat/completions
+openai model: whisper1

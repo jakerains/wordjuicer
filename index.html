@@ -95,18 +95,25 @@
 
         // Configure container styles
         Object.assign(container.style, {
-          width: '200px',
-          height: '200px',
+          width: '100px',
+          height: '100px',
           margin: '0 auto 1rem'
         });
 
         // Initialize Lottie animation
-        lottie.loadAnimation({
+        const anim = lottie.loadAnimation({
           container: container,
           renderer: 'svg',
           loop: true,
           autoplay: true,
           path: '/Animation - loading.json'
+        });
+
+        // Clean up animation when app loads
+        window.addEventListener('load', () => {
+          setTimeout(() => {
+            anim.destroy();
+          }, 500);
         });
       })();
     </script>
