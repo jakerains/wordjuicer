@@ -80,7 +80,7 @@ export function Help() {
             <Zap className="w-6 h-6 text-[#A2AD1E]" />
           </div>
           <div>
-            <h2 className="text-xl font-semibold text-gray-100">What's New in v1.0.8</h2>
+            <h2 className="text-xl font-semibold text-gray-100">What's New in v1.0.10</h2>
             <p className="text-gray-400 text-sm">Released February 6, 2025</p>
           </div>
         </div>

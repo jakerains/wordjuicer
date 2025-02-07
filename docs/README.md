@@ -5,7 +5,7 @@
 Word Juicer is a modern, efficient audio transcription application that leverages multiple AI services (OpenAI, Groq, and Hugging Face) to provide accurate transcriptions. Built as a Progressive Web App (PWA), it works both online and offline, offering a seamless experience across devices.
 
 [![Live Demo](https://img.shields.io/badge/demo-live-green.svg)](https://wordjuicer.app)
-[![Version](https://img.shields.io/badge/version-1.0.5-blue.svg)](docs/CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.0.10-blue.svg)](docs/CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 ![Word Juicer Screenshot](public/juicericons/icon-1024.png)
@@ -31,7 +31,7 @@ Word Juicer is a modern, efficient audio transcription application that leverage
 
 > **Note**: A trial Groq API key is provided for testing, but it has rate limits. For the best experience, we recommend using your own API key.
 
-## �� Documentation
+## 📖 Documentation
 
 - [Quick Start Guide](guides/QUICK_START.md)
 - [Installation Guide](guides/INSTALLATION.md)
