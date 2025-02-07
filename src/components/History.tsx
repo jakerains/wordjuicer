@@ -103,8 +103,11 @@ export function History() {
 
   const handleDeleteAll = async () => {
     try {
+      console.log('Starting delete all operation...');
       await resetData();
+      console.log('Reset data completed');
       await loadTranscriptions(); // Reload transcriptions after reset
+      console.log('Transcriptions reloaded');
       setShowDeleteConfirm(false);
       setSelectedTranscription(null);
       addNotification({
@@ -165,11 +168,16 @@ export function History() {
                 variant="danger"
                 size="sm"
                 onClick={(e) => {
+                  e.preventDefault();
                   e.stopPropagation();
-                  setShowDeleteConfirm(true);
+                  console.log('Delete button clicked');
+                  if (transcriptions.length > 0) {
+                    setShowDeleteConfirm(true);
+                  }
                 }}
                 disabled={!transcriptions.length}
                 icon={<Trash2 className="w-4 h-4" />}
+                type="button"
               >
                 Delete All
               </GlassButton>

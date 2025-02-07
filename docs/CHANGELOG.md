@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.9] - 2025-02-06
+
+### Fixed
+- Fixed delete button functionality in history view
+- Added Netlify configuration for proper client-side routing
+- Fixed page refresh 404 issues on Netlify deployment
+- Enhanced delete confirmation dialog z-index handling
+
+### Added
+- Added detailed logging for delete operations
+- Added Netlify routing configuration files
+- Added backup _redirects file for Netlify deployments
+
+### Changed
+- Improved button click handling and event propagation
+- Enhanced UI feedback for delete operations
+- Updated error handling with more descriptive messages
+
 ## [1.0.8] - 2025-02-06
 
 ### Added
