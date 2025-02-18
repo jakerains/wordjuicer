@@ -10,7 +10,6 @@ import { Settings } from './components/Settings';
 import { Help } from './components/Help';
 import { NotificationCenter } from './components/NotificationCenter';
 import { Sidebar } from './components/Sidebar';
-import { InstallPWA } from './components/InstallPWA';
 import { exportTXT, exportSRT, exportDOCX, exportPDF } from './utils/exportFormats';
 import type { ExportTheme } from './components/ExportStyleSelector';
 import { transcribeAudio } from './utils/transcription';
@@ -20,11 +19,12 @@ import { useNotificationStore } from './store/notificationStore';
 import { initializeDatabase } from './db';
 import { getFormattedVersion } from './utils/version';
 import { GlassButton } from './components/ui/GlassButton';
-import { initGA, pageview, trackTranscriptionStart, trackTranscriptionComplete, trackExport, trackError, trackFeatureUsage, trackInstallEvent, trackReturnVisit, trackAPIError } from './utils/analytics';
+import { initGA, pageview, trackTranscriptionStart, trackTranscriptionComplete, trackExport, trackError, trackFeatureUsage, trackReturnVisit, trackAPIError } from './utils/analytics';
 import { useApiKeyStore } from './store/apiKeyStore';
 import { motion } from 'framer-motion';
-import { initializeLocalModel, runLocalTranscription, getModelState, ModelState } from './utils/localModel';
-import { ModelStatus } from './components/ModelStatus';
+import { useModelStore } from './store/modelStore';
+import { useProgressStore } from './utils/progress';
+import { useQueueStore } from './utils/queue';
 
 // Define error type with status
 interface APIError extends Error {
@@ -40,8 +40,6 @@ function AppContent() {
   const [currentFile, setCurrentFile] = useState<string>('');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { provider } = useApiKeyStore();
-  const [modelState, setModelState] = useState<string>(ModelState.IDLE);
-  const [modelProgress, setModelProgress] = useState<number>(0);
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -101,25 +99,6 @@ function AppContent() {
     pageview(`/${activeView}`);
   }, [activeView]);
 
-  // Listen for model state changes
-  useEffect(() => {
-    const handleModelStateChange = (event: any) => {
-      setModelState(event.detail.state);
-    };
-
-    const handleModelProgress = (event: any) => {
-      setModelProgress(event.detail.progress);
-    };
-
-    window.addEventListener('modelStateChange', handleModelStateChange);
-    window.addEventListener('modelDownloadProgress', handleModelProgress);
-
-    return () => {
-      window.removeEventListener('modelStateChange', handleModelStateChange);
-      window.removeEventListener('modelDownloadProgress', handleModelProgress);
-    };
-  }, []);
-
   const handleFileSelect = async (file: File) => {
     try {
       setIsLoading(true);
@@ -127,70 +106,56 @@ function AppContent() {
       setError(null);
       setProgress(0);
       
-      // Check network status
-      if (!navigator.onLine) {
-        // Offline mode - use local model
-        await initializeLocalModel('openai/whisper-tiny');
-
-        const result = await runLocalTranscription(file, 'openai/whisper-tiny');
-
-        // Update transcription state
-        setTranscription(result.text);
-        setTimestamps(result.timestamps);
-        setError(null);
-      } else {
-        // Online mode - existing transcription logic
-        trackTranscriptionStart('auto', provider as 'openai' | 'groq' | 'huggingface');
-        trackFeatureUsage('transcription_start');
-        
-        const startTime = Date.now();
-        
-        // Simulate progress updates
-        const progressInterval = setInterval(() => {
-          setProgress(prev => {
-            if (prev >= 90) {
-              clearInterval(progressInterval);
-              return prev;
-            }
-            return prev + 10;
-          });
-        }, 1000);
-        
-        const result = await transcribeAudio(file);
-        
-        // Complete the progress
-        clearInterval(progressInterval);
-        setProgress(100);
-        
-        const duration = (Date.now() - startTime) / 1000;
-        trackTranscriptionComplete(duration, 'auto', provider as 'openai' | 'groq' | 'huggingface', file.size);
-        trackFeatureUsage('transcription_complete');
-        
-        // Add to transcription store
-        addTranscription({
-          id: crypto.randomUUID(),
-          filename: file.name,
-          text: result.text,
-          timestamps: result.timestamps,
-          duration: duration,
-          size: file.size,
-          date: new Date(),
-          status: 'completed'
+      trackTranscriptionStart('auto', provider as 'openai' | 'groq' | 'huggingface');
+      trackFeatureUsage('transcription_start');
+      
+      const startTime = Date.now();
+      
+      // Simulate progress updates
+      const progressInterval = setInterval(() => {
+        setProgress(prev => {
+          if (prev >= 90) {
+            clearInterval(progressInterval);
+            return prev;
+          }
+          return prev + 10;
         });
+      }, 1000);
+      
+      const result = await transcribeAudio(file);
+      
+      // Complete the progress
+      clearInterval(progressInterval);
+      setProgress(100);
+      
+      const duration = (Date.now() - startTime) / 1000;
+      trackTranscriptionComplete(duration, 'auto', provider as 'openai' | 'groq' | 'huggingface', file.size);
+      trackFeatureUsage('transcription_complete');
+      
+      // Add to transcription store
+      addTranscription({
+        id: crypto.randomUUID(),
+        filename: file.name,
+        text: result.text,
+        timestamps: result.timestamps,
+        duration: duration,
+        size: file.size,
+        date: new Date(),
+        status: 'completed'
+      });
 
-        // Add success notification
-        addNotification({
-          type: 'success',
-          message: `Successfully transcribed ${file.name}`
-        });
+      // Add success notification
+      addNotification({
+        type: 'success',
+        message: `Successfully transcribed ${file.name}`
+      });
 
-        // Set the transcription and timestamps state
-        console.log('Setting transcription:', result.text);
-        console.log('Setting timestamps:', result.timestamps);
-        setTranscription(result.text || '');  // Ensure we have a string even if text is undefined
-        setTimestamps(result.timestamps || []);  // Ensure we have an array even if timestamps is undefined
-        setError(null);  // Clear any previous errors
-      }
+      // Set the transcription and timestamps state
+      console.log('Setting transcription:', result.text);
+      console.log('Setting timestamps:', result.timestamps);
+      setTranscription(result.text || '');  // Ensure we have a string even if text is undefined
+      setTimestamps(result.timestamps || []);  // Ensure we have an array even if timestamps is undefined
+      setError(null);  // Clear any previous errors
     } catch (err) {
       const error = err as APIError;
       const errorMessage = error.message || 'Unknown error';
@@ -239,43 +204,6 @@ function AppContent() {
     } catch (err) {
       trackExport(format, false);
       trackError(`Export failed - ${format}: ${err instanceof Error ? err.message : 'Unknown error'}`);
-    }
-  };
-
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-  const [showInstallBanner, setShowInstallBanner] = useState(true);
-
-  useEffect(() => {
-    const handleBeforeInstallPrompt = (e: any) => {
-      // Don't prevent default - let the browser show its native install prompt
-      setDeferredPrompt(e);
-      setShowInstallBanner(true);
-    };
-
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    };
-  }, []);
-
-  const handleInstall = async () => {
-    if (!deferredPrompt) return;
-
-    try {
-      trackInstallEvent('prompt_shown');
-      const result = await deferredPrompt.prompt();
-      
-      const { outcome } = await deferredPrompt.userChoice;
-      trackInstallEvent(outcome === 'accepted' ? 'installed' : 'dismissed');
-      
-      if (outcome === 'accepted') {
-        setDeferredPrompt(null);
-        setShowInstallBanner(false);
-      }
-    } catch (error) {
-      console.error('Error showing install prompt:', error);
-      trackError(`Install prompt error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
@@ -403,15 +331,6 @@ function AppContent() {
           </footer>
         </div>
       </div>
-      {showInstallBanner && (
-        <InstallPWA
-          deferredPrompt={deferredPrompt}
-          onInstall={handleInstall}
-          onDismiss={() => setShowInstallBanner(false)}
-        />
-      )}
-
-      <ModelStatus />
     </div>
   );
 }

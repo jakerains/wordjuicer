@@ -1,129 +1,14 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <!-- Google tag (gtag.js) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-FQRG6EGMH9"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-      gtag('config', 'G-FQRG6EGMH9');
-    </script>
-    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/juicericons/icon-60@3x.png" />
-    <link rel="apple-touch-icon" sizes="120x120" href="/juicericons/icon-60@2x.png" />
-    <link rel="apple-touch-icon" sizes="167x167" href="/juicericons/icon-83.5@2x.png" />
-    <link rel="apple-touch-icon" sizes="152x152" href="/juicericons/icon-76@2x.png" />
-    <link rel="apple-touch-icon" sizes="76x76" href="/juicericons/icon-76.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    
-    <!-- Primary Meta Tags -->
-    <title>Word Juicer - Word Transcription filled with Cirtus Goodness!</title>
-    <meta name="title" content="Word Juicer - Modern Audio Transcription App">
-    <meta name="description" content="Transform your audio into text with Word Juicer - a fast, accurate, and privacy-focused transcription app. Supports multiple languages, offline mode, and AI-powered transcription." />
-    <meta name="keywords" content="audio transcription, speech to text, voice recognition, AI transcription, offline transcription, multilingual transcription">
-    <meta name="author" content="@jakerains">
-    
-    <!-- Open Graph / Facebook -->
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="https://wordjuicer.app/">
-    <meta property="og:title" content="Word Juicer - Modern Audio Transcription App">
-    <meta property="og:description" content="Transform your audio into text with Word Juicer - a fast, accurate, and privacy-focused transcription app. Supports multiple languages, offline mode, and AI-powered transcription.">
-    <meta property="og:image" content="https://wordjuicer.app/juicerbanner-wide.png">
-    
-    <!-- Twitter -->
-    <meta property="twitter:card" content="summary_large_image">
-    <meta property="twitter:url" content="https://wordjuicer.app/">
-    <meta property="twitter:title" content="Word Juicer - Modern Audio Transcription App">
-    <meta property="twitter:description" content="Transform your audio into text with Word Juicer - a fast, accurate, and privacy-focused transcription app. Supports multiple languages, offline mode, and AI-powered transcription.">
-    <meta property="twitter:image" content="https://wordjuicer.app/juicerbanner-wide.png">
-    <meta name="twitter:creator" content="@jakerains">
-    
-    <!-- App Capability Meta Tags -->
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="theme-color" content="#A2AD1E" />
-    
-    <!-- Additional SEO Meta Tags -->
-    <meta name="application-name" content="Word Juicer">
-    <meta name="robots" content="index, follow">
-    <meta name="googlebot" content="index, follow">
-    <link rel="canonical" href="https://wordjuicer.app/">
-    
-    <link rel="manifest" href="/manifest.webmanifest" />
-    
-    <style>
-      /* Critical CSS for initial load */
-      #root {
-        min-height: 100vh;
-        background: linear-gradient(to bottom right, #A2AD1E, #F96C57, #F98128);
-      }
-      .loading-screen {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        min-height: 100vh;
-        color: white;
-        text-align: center;
-      }
-      .loading-screen h1 {
-        font-size: 2rem;
-        margin-bottom: 1rem;
-      }
-    </style>
+    <meta name="description" content="Modern audio transcription app" />
+    <link rel="icon" type="image/png" href="/juicericons/icon-32x32.png" />
+    <title>Word Juicer</title>
   </head>
   <body>
-    <div id="root">
-      <div class="loading-screen">
-        <div class="loading-content">
-          <img 
-            src="/juicerbanner-wide.png" 
-            alt="Word Juicer - Modern Audio Transcription App" 
-            style="width: 300px; height: auto; margin-bottom: 2rem; object-fit: contain;" 
-          />
-          <div id="lottie-container"></div>
-          <p class="loading-text">Loading application...</p>
-        </div>
-      </div>
-    </div>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
-    <script>
-      (function() {
-        const container = document.getElementById('lottie-container');
-        if (!container) return;
-
-        // Configure container styles
-        Object.assign(container.style, {
-          width: '100px',
-          height: '100px',
-          margin: '0 auto 1rem'
-        });
-
-        // Initialize Lottie animation
-        const anim = lottie.loadAnimation({
-          container: container,
-          renderer: 'svg',
-          loop: true,
-          autoplay: true,
-          path: '/Animation - loading.json'
-        });
-
-        // Clean up animation when app loads
-        window.addEventListener('load', () => {
-          setTimeout(() => {
-            anim.destroy();
-          }, 500);
-        });
-      })();
-    </script>
+    <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
-    <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js');
-        });
-      }
-    </script>
   </body>
 </html>

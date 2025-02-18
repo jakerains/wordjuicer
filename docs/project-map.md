@@ -1,44 +1,37 @@
 # Project Map <!-- markmap: fold -->
 
 ## Core Features
-### Offline Support
-- **PWA Enhancements**
-  - Service worker configuration for asset caching
-  - Offline installation capabilities
-- **Model Caching**
-  - IndexedDB storage for model files
-  - Local model initialization and management
-
-### Model Management
-- **Model States**
-  - Tracking download and initialization states
-- **UI Components**
-  - `ModelStatus.tsx` for displaying model download progress
+### Audio Management
+- **Audio Processing**
+  - Optimized audio conversion with FFmpeg
+  - Local audio file management
+  - Efficient file handling
 
 ### Transcription
-- **Offline Transcription**
-  - Use local Whisper model when offline
 - **Online Transcription**
-  - Use remote APIs when online
+  - Use Groq API for high-quality transcription
+  - Optimized audio processing with FFmpeg
 - **Error Handling**
-  - Graceful handling of model download and transcription errors
+  - Graceful handling of API and processing errors
+- **Progress Tracking**
+  - Real-time progress updates for audio conversion
+  - Transcription status monitoring
 
 ## Technical Architecture
 ### Libraries and Tools
-- **Workbox**
-  - Service worker and caching strategies
-- **@xenova/transformers**
-  - In-browser model inference with ONNX
+- **FFmpeg**
+  - Audio processing and optimization
+- **Vite**
+  - Build and development tooling
 
 ### File Structure
 - `/src`
   - `/components`
-    - `ModelStatus.tsx`: Displays model download status
+    - UI components for transcription interface
   - `/utils`
-    - `localModel.ts`: Manages local model initialization and transcription
+    - `transcription.ts`: Manages audio processing and transcription
 - `/public`
-  - `manifest.webmanifest`: Updated manifest for PWA
-  - `sw.js`: Service worker with caching strategies
+  - Static assets and resources
 
 ## Documentation
 - **Changelog**

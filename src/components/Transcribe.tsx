@@ -7,6 +7,8 @@ import { TranscriptionProgress } from './TranscriptionProgress';
 import { TranscriptionQueue } from './TranscriptionQueue';
 import { useProgressStore } from '../utils/progress';
 import { useQueueStore } from '../utils/queue';
+import { transcribeAudio } from '../utils/transcription';
+import { Button } from './ui/button';
 
 interface TranscribeProps {
   setActiveView: (view: 'dashboard' | 'transcribe' | 'history' | 'settings' | 'help') => void;
@@ -17,37 +19,56 @@ export function Transcribe({ setActiveView }: TranscribeProps) {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const { addTranscription } = useTranscriptionStore();
   const addNotification = useNotificationStore((state) => state.addNotification);
-  const { progress } = useProgressStore();
   const { addItem } = useQueueStore();
+
+  // Subscribe to progress store changes
+  const currentChunk = useProgressStore((state) => state.currentChunk);
+  const status = useProgressStore((state) => state.status);
+  const isProcessing = status === 'processing' || currentChunk.status === 'processing';
 
   const handleFileSelect = async (file: File) => {
     if (!file) return;
 
-    // Validate file type
-    if (!file.type.startsWith('audio/')) {
-      addNotification({
-        type: 'error',
-        message: 'Please select an audio file'
-      });
-      return;
-    }
-
-    // Validate file size (100MB limit)
-    if (file.size > 100 * 1024 * 1024) {
-      addNotification({
-        type: 'error',
-        message: 'File size must be less than 100MB'
-      });
-      return;
-    }
-
-    // Add file to queue
-    addItem(file);
-    
-    addNotification({
-      type: 'info',
-      message: 'File added to transcription queue'
+    // Log the file information for debugging
+    console.log('File details:', {
+      name: file.name,
+      type: file.type,
+      size: file.size
     });
+
+    // Map of file extensions to MIME types
+    const mimeTypeMap: Record<string, string[]> = {
+      'm4a': ['audio/mp4', 'audio/x-m4a', 'audio/m4a'],
+      'mp3': ['audio/mpeg', 'audio/mp3', 'audio/x-mpeg3', 'audio/mpeg3'],
+      'mp4': ['audio/mp4'],
+      'wav': ['audio/wav', 'audio/x-wav', 'audio/wave'],
+      'flac': ['audio/flac', 'audio/x-flac'],
+      'ogg': ['audio/ogg', 'audio/x-ogg'],
+      'opus': ['audio/opus'],
+      'webm': ['audio/webm']
+    };
+
+    // Get file extension
+    const extension = file.name.split('.').pop()?.toLowerCase() || '';
+    
+    // Check if the extension is supported
+    if (!mimeTypeMap[extension]) {
+      addNotification({
+        type: 'error',
+        message: 'Unsupported file format. Please use FLAC, MP3, MP4, M4A, WAV, OGG, OPUS, or WEBM'
+      });
+      return;
+    }
+
+    try {
+      await transcribeAudio(file);
+    } catch (error) {
+      console.error('Transcription failed:', error);
+      addNotification({
+        type: 'error',
+        message: error instanceof Error ? error.message : 'Transcription failed'
+      });
+    }
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -64,22 +85,20 @@ export function Transcribe({ setActiveView }: TranscribeProps) {
     e.preventDefault();
     setIsDragging(false);
     
-    // Handle multiple files
     Array.from(e.dataTransfer.files).forEach((file) => {
       handleFileSelect(file);
     });
   };
 
   const handleFileInput = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Handle multiple files
     Array.from(e.target.files || []).forEach((file) => {
       handleFileSelect(file);
     });
   };
 
   return (
-    <div className="max-w-2xl space-y-6">
-      {progress.status !== 'idle' ? (
+    <div className="max-w-2xl mx-auto space-y-6">
+      {isProcessing ? (
         <div className="bg-gray-900/75 backdrop-blur-md rounded-[20px] p-6 border border-gray-700/30 shadow-xl">
           <TranscriptionProgress />
         </div>
@@ -120,18 +139,12 @@ export function Transcribe({ setActiveView }: TranscribeProps) {
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
           >
-            <label htmlFor="audio-file-input" className="sr-only">
-              Choose an audio file to transcribe
-            </label>
             <input
-              id="audio-file-input"
               ref={fileInputRef}
               type="file"
               accept="audio/*"
               onChange={handleFileInput}
               className="hidden"
-              title="Audio file input"
-              aria-label="Choose an audio file to transcribe"
               multiple
             />
 
@@ -154,13 +167,12 @@ export function Transcribe({ setActiveView }: TranscribeProps) {
                 size="lg"
                 onClick={() => fileInputRef.current?.click()}
                 icon={<Upload className="w-5 h-5" />}
-                aria-controls="audio-file-input"
               >
                 Select Audio Files
               </GlassButton>
 
               <p className="text-xs text-white/30">
-                Supports MP3, WAV, M4A, FLAC, and more • Max file size 100MB
+                Supports FLAC, MP3, MP4, M4A, WAV, OGG, OPUS, and WEBM • Max file size 100MB
               </p>
             </div>
           </div>

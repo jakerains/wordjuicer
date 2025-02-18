@@ -2,20 +2,156 @@ import { useModelStore } from '../store/modelStore';
 import { useApiKeyStore } from '../store/apiKeyStore';
 import { useNotificationStore } from '../store/notificationStore';
 import { createRetryWrapper, SERVICE_RETRY_CONFIGS } from './retry';
-import { useCacheStore, createFileHash, getAudioDuration, type CacheItem } from './cache';
+import { useCacheStore, createFileHash, getAudioDuration } from './cache';
 import { useProgressStore } from './progress';
+import { FFmpeg } from '@ffmpeg/ffmpeg';
+import { fetchFile, toBlobURL } from '@ffmpeg/util';
 
-// Maximum chunk size (5MB)
-const MAX_CHUNK_SIZE = 5 * 1024 * 1024;
+// Maximum chunk size (25MB - Groq's limit)
+const MAX_CHUNK_SIZE = 25 * 1024 * 1024;
+
+// Initialize FFmpeg
+let ffmpeg: FFmpeg | null = null;
+
+// Initialize FFmpeg with progress tracking
+async function initFFmpeg() {
+  if (!ffmpeg) {
+    ffmpeg = new FFmpeg();
+    
+    // Log FFmpeg messages
+    ffmpeg.on('log', ({ message }) => {
+      console.log('FFmpeg log:', message);
+    });
+    
+    // Track progress
+    ffmpeg.on('progress', ({ progress, time }) => {
+      const percent = Math.round(progress * 100);
+      console.log(`Converting: ${percent}%`);
+      // Update progress store
+      useProgressStore.getState().updateCurrentChunk({ 
+        status: 'processing',
+        progress: percent,
+        message: `Converting audio: ${percent}%`
+      });
+    });
+
+    try {
+      // Load FFmpeg
+      await ffmpeg.load();
+      console.log('FFmpeg loaded successfully');
+    } catch (error) {
+      console.error('Failed to load FFmpeg:', error);
+      throw new Error(`Failed to initialize audio converter: ${error.message}`);
+    }
+  }
+  return ffmpeg;
+}
+
+// Audio conversion utility optimized for Groq
+async function convertAudioToMp3(audioFile: File): Promise<File> {
+  console.log('Starting audio conversion to MP3...', {
+    originalSize: audioFile.size,
+    originalType: audioFile.type
+  });
+  
+  try {
+    // Initialize FFmpeg if needed
+    const ffmpeg = await initFFmpeg();
+    
+    // Get progress store instance
+    const progressStore = useProgressStore.getState();
+    
+    // Update progress
+    progressStore.updateCurrentChunk({ 
+      status: 'processing',
+      progress: 0,
+      message: 'Preparing audio conversion...'
+    });
+    
+    // Generate unique input and output filenames
+    const inputFileName = `input_${Date.now()}.${audioFile.name.split('.').pop()}`;
+    const outputFileName = `output_${Date.now()}.mp3`;
+    
+    // Write the file to FFmpeg's virtual filesystem
+    await ffmpeg.writeFile(inputFileName, await fetchFile(audioFile));
+    
+    // Run FFmpeg command with optimized settings for Groq
+    // -ar 16000: Set sample rate to 16kHz (optimal for Whisper)
+    // -ac 1: Convert to mono
+    // -b:a 32k: Set bitrate to 32kbps (good for speech)
+    // -movflags +faststart: Optimize for streaming
+    // -compression_level 8: Higher compression
+    await ffmpeg.exec([
+      '-i', inputFileName,
+      '-ar', '16000',
+      '-ac', '1',
+      '-b:a', '32k',
+      '-c:a', 'libmp3lame',
+      '-compression_level', '8',
+      '-movflags', '+faststart',
+      outputFileName
+    ]);
+    
+    // Read the result
+    const data = await ffmpeg.readFile(outputFileName);
+    
+    // Create a new File from the converted data
+    const convertedFile = new File([data.buffer], 
+      audioFile.name.replace(/\.[^/.]+$/, '.mp3'),
+      { type: 'audio/mpeg' }
+    );
+    
+    // Log compression results
+    console.log('Audio conversion completed:', {
+      originalSize: audioFile.size,
+      convertedSize: convertedFile.size,
+      compressionRatio: (convertedFile.size / audioFile.size * 100).toFixed(2) + '%',
+      type: convertedFile.type
+    });
+    
+    // Clean up
+    await ffmpeg.deleteFile(inputFileName);
+    await ffmpeg.deleteFile(outputFileName);
+    
+    // Update progress
+    progressStore.updateCurrentChunk({ 
+      status: 'processing',
+      progress: 100,
+      message: 'Audio conversion completed'
+    });
+    
+    return convertedFile;
+  } catch (error) {
+    console.error('Audio conversion failed:', error);
+    // Update progress with error
+    const progressStore = useProgressStore.getState();
+    progressStore.updateCurrentChunk({ 
+      status: 'error',
+      error: `Audio conversion failed: ${error.message}`
+    });
+    throw new Error(`Failed to convert audio: ${error.message}`);
+  }
+}
 
 async function* createChunks(file: File) {
   const totalSize = file.size;
   let start = 0;
   
+  // Normalize MIME type
+  let mimeType = file.type;
+  if (!mimeType || mimeType === 'audio/m4a' || mimeType === 'audio/x-m4a') {
+    mimeType = 'audio/mp4';
+  } else if (mimeType === 'audio/mpeg3' || mimeType === 'audio/x-mpeg3') {
+    mimeType = 'audio/mpeg';
+  }
+  
+  console.log('Normalized MIME type:', mimeType);
+  
   while (start < totalSize) {
     const end = Math.min(start + MAX_CHUNK_SIZE, totalSize);
     const chunk = file.slice(start, end);
-    yield chunk;
+    const chunkFile = new File([chunk], file.name, { type: mimeType });
+    yield chunkFile;
     start = end;
   }
 }
@@ -23,16 +159,13 @@ async function* createChunks(file: File) {
 export async function transcribeAudio(
   file: File
 ): Promise<{ text: string; timestamps: Array<{ time: number; text: string }> }> {
-  const { selectedModel } = useModelStore.getState();
-  const { apiKey, isValidated, provider } = useApiKeyStore.getState();
+  const { apiKey } = useApiKeyStore.getState();
   const addNotification = useNotificationStore.getState().addNotification;
   const { getItem, addItem } = useCacheStore.getState();
   const progressStore = useProgressStore.getState();
-  
-  let allResults: { text: string; timestamps: Array<{ time: number; text: string }> }[] = [];
 
   if (!apiKey && !import.meta.env.VITE_GROQ_API_KEY) {
-    throw new Error('No API key available. Please add an API key in settings or wait for the trial key to be available.');
+    throw new Error('No API key available. Please add a Groq API key in settings.');
   }
 
   // Reset progress tracking
@@ -44,7 +177,7 @@ export async function transcribeAudio(
     const cachedResult = getItem(fileHash);
     
     if (cachedResult) {
-      progressStore.initialize(file.name, file.size, 1, provider);
+      progressStore.initialize(file.name, file.size, 1, 'groq');
       progressStore.updateChunk(0, { status: 'completed', progress: 100 });
       progressStore.setStatus('completed');
       
@@ -59,311 +192,144 @@ export async function transcribeAudio(
     }
   } catch (error) {
     console.error('Cache lookup failed:', error);
-    // Continue with transcription if cache fails
   }
 
   // Initialize progress tracking
-  const totalChunks = Math.ceil(file.size / MAX_CHUNK_SIZE);
-  progressStore.initialize(file.name, file.size, totalChunks, provider);
+  progressStore.initialize(file.name, file.size, 1, 'groq');
 
-  // Create a retry-wrapped version of performTranscription
-  const transcribeWithRetry = createRetryWrapper(
-    async (chunk: Blob, chunkId: number) => {
-      try {
-        progressStore.updateChunk(chunkId, { status: 'processing', progress: 0 });
-        const result = await performTranscription(chunk, apiKey, provider);
-        progressStore.updateChunk(chunkId, { status: 'completed', progress: 100 });
-        return result;
-      } catch (error) {
-        progressStore.updateChunk(chunkId, { 
-          status: 'error', 
-          error: error instanceof Error ? error.message : 'Unknown error' 
-        });
-        throw error;
-      }
-    },
-    SERVICE_RETRY_CONFIGS[provider]
-  );
-
-  // Process file in chunks
-  let chunkId = 0;
-  for await (const chunk of createChunks(file)) {
-    try {
-      const result = await transcribeWithRetry(chunk, chunkId);
-      allResults.push(result);
-      chunkId++;
-    } catch (error) {
-      console.error('Transcription error:', error);
-      progressStore.setStatus('error', error instanceof Error ? error.message : 'Unknown error');
-      throw error;
-    }
-  }
-
-  // Combine results
-  const combinedResult = {
-    text: allResults.map(r => r.text).join(' '),
-    timestamps: allResults.flatMap((r, i) => {
-      const timeOffset = i * (MAX_CHUNK_SIZE / file.size) * file.size;
-      return r.timestamps.map(t => ({
-        time: t.time + timeOffset,
-        text: t.text
-      }));
-    })
-  };
-
-  // Cache the result
   try {
-    const fileHash = await createFileHash(file);
-    const duration = await getAudioDuration(file);
+    // Convert audio to optimized MP3 format
+    console.log('Converting audio to optimized MP3 format...');
+    const processedFile = await convertAudioToMp3(file);
     
-    addItem(fileHash, {
-      ...combinedResult,
-      fileHash,
-      provider,
-      fileSize: file.size,
-      duration
+    if (processedFile.size > MAX_CHUNK_SIZE) {
+      throw new Error('Audio file too large. Maximum size is 25MB after compression.');
+    }
+
+    progressStore.updateCurrentChunk({ 
+      status: 'processing', 
+      progress: 50,
+      message: 'Sending to Groq API...'
     });
+
+    // Perform transcription
+    const result = await performTranscription(processedFile, apiKey);
+
+    // Cache the result
+    try {
+      const fileHash = await createFileHash(file);
+      const duration = await getAudioDuration(file);
+      
+      addItem(fileHash, {
+        ...result,
+        fileHash,
+        provider: 'groq',
+        fileSize: file.size,
+        duration
+      });
+    } catch (error) {
+      console.error('Failed to cache result:', error);
+    }
+
+    // Mark transcription as completed
+    progressStore.updateCurrentChunk({ 
+      status: 'completed', 
+      progress: 100,
+      message: 'Transcription completed'
+    });
+
+    return result;
   } catch (error) {
-    console.error('Failed to cache result:', error);
-    // Continue even if caching fails
+    progressStore.setStatus('error', error instanceof Error ? error.message : 'Unknown error');
+    throw error;
   }
-
-  // Mark transcription as completed
-  progressStore.setStatus('completed');
-
-  return combinedResult;
 }
 
 async function performTranscription(
-  chunk: Blob,
-  apiKey: string,
-  provider: string
+  file: File,
+  apiKey: string
 ): Promise<{ text: string; timestamps: Array<{ time: number; text: string }> }> {
-  const formData = new FormData();
+  const apiUrl = 'https://api.groq.com/openai/v1/audio/transcriptions';
+  const key = apiKey || import.meta.env.VITE_GROQ_API_KEY;
   
-  let apiUrl: string;
-  let headers: Record<string, string> = {};
-  
-  switch (provider) {
-    case 'huggingface': {
-      apiUrl = 'https://api-inference.huggingface.co/models/openai/whisper-large-v3';
-      headers = {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'audio/wav'
-      };
+  try {
+    // Create FormData with the processed MP3 file
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('model', 'whisper-large-v3-turbo');
+    formData.append('response_format', 'verbose_json');
+    formData.append('language', 'en');
+    formData.append('temperature', '0');
+    
+    console.log('Sending request to Groq API...', {
+      fileSize: file.size,
+      fileType: file.type
+    });
 
-      // Convert audio chunk to binary data
-      const arrayBuffer = await chunk.arrayBuffer();
-      const binaryData = new Uint8Array(arrayBuffer);
-      
-      // Make request directly for Hugging Face with retries for cold starts
-      let retries = 0;
-      const maxRetries = 3;
-      
-      while (retries < maxRetries) {
-        const response = await fetch(apiUrl, {
-          method: 'POST',
-          headers,
-          body: binaryData
-        });
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${key}`
+      },
+      body: formData
+    });
 
-        if (response.status === 503) {
-          // Model is loading (cold start)
-          console.log('Model is loading, waiting before retry...');
-          await new Promise(resolve => setTimeout(resolve, 2000));  // Wait 2 seconds
-          retries++;
-          continue;
-        }
-
-        if (!response.ok) {
-          let errorMessage = `API request failed with status ${response.status}`;
-          try {
-            const errorData = await response.json();
-            if (errorData.error?.includes('token seems invalid')) {
-              throw new Error('Invalid Hugging Face API token. Please check your token and ensure you have access to the model.');
-            }
-            errorMessage = errorData.error || `Hugging Face API error: ${response.status}`;
-            console.error('Hugging Face API error details:', errorData);
-          } catch (e) {
-            console.error('Error parsing Hugging Face error response:', e);
-          }
-          throw new Error(errorMessage);
-        }
-
-        const result = await response.json();
-        console.log('Hugging Face response:', result);
-        
-        // Extract text from the response object
-        let transcribedText = '';
-        
-        // Handle the case where the response has a duplicate text property
-        if (typeof result === 'object') {
-          // Get all text properties from the object
-          const textValues = Object.values(result).filter(value => 
-            typeof value === 'string' && value.length > 0
-          );
-          
-          // Use the longest text value (likely the full transcription)
-          transcribedText = textValues.reduce((longest, current) => 
-            current.length > longest.length ? current : longest
-          , '');
-        } else if (typeof result === 'string') {
-          transcribedText = result;
-        }
-
-        console.log('Extracted transcription text:', transcribedText);
-
-        if (!transcribedText) {
-          console.error('No valid transcription found in response:', result);
-          throw new Error('No valid transcription found in response');
-        }
-
-        // Return the processed result
-        return {
-          text: transcribedText,
-          timestamps: []  // Hugging Face doesn't provide timestamps in this format
-        };
-      }
-      
-      throw new Error('Model failed to load after maximum retries');
-    }
-      
-    case 'groq': {
-      apiUrl = 'https://api.groq.com/openai/v1/audio/transcriptions';
-      const key = apiKey || import.meta.env.VITE_GROQ_API_KEY;
-      
-      // Create a new FormData instance
-      const formData = new FormData();
-      
-      // Convert blob to File with proper MIME type
-      const audioFile = new File([chunk], 'audio.flac', { 
-        type: 'audio/flac'  // Using FLAC as recommended by Groq
-      });
-
-      // Append required fields
-      formData.append('file', audioFile);
-      formData.append('model', 'whisper-large-v3-turbo');
-      formData.append('response_format', 'json');
-      formData.append('language', 'en');
-      formData.append('temperature', '0.0');
-      // Add prompt to encourage proper formatting
-      formData.append('prompt', 'Format the transcription with proper punctuation, paragraphs, and natural sentence breaks. Maintain original speaking style but ensure text is well-formatted.');
-
+    if (!response.ok) {
+      let errorMessage = `API request failed with status ${response.status}`;
       try {
-        const response = await fetch(apiUrl, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${key}`
-          },
-          body: formData
-        });
-
-        if (!response.ok) {
-          let errorMessage = `API request failed with status ${response.status}`;
-          try {
-            const errorData = await response.json();
-            errorMessage = errorData.error?.message || errorData.error || errorMessage;
-            console.error('Groq API error details:', errorData);
-            
-            if (response.status === 401) {
-              throw new Error('Invalid API key. Please check your Groq API key.');
-            }
-            if (response.status === 404) {
-              throw new Error('Groq API endpoint not found. Please try again later.');
-            }
-            if (response.status === 413) {
-              throw new Error('Audio file too large. Maximum size is 25MB.');
-            }
-          } catch (e) {
-            console.error('Error parsing Groq error response:', e);
-          }
-          throw new Error(errorMessage);
-        }
-
-        const result = await response.json();
+        const errorData = await response.json();
+        errorMessage = errorData.error?.message || errorData.error || errorMessage;
         
-        if (!result.text) {
-          throw new Error('No transcription data available from Groq');
+        if (response.status === 400) {
+          throw new Error('Invalid request format. Please ensure the audio file is in a supported format.');
         }
-
-        // Process the text to ensure proper formatting
-        const processedText = result.text
-          // Remove extra whitespace
-          .replace(/\s+/g, ' ')
-          // Ensure proper spacing after punctuation
-          .replace(/([.!?])\s*/g, '$1 ')
-          // Ensure proper paragraph breaks
-          .replace(/([.!?])\s+(?=[A-Z])/g, '$1\n\n')
-          .trim();
-
-        // Create timestamps based on word count and estimated duration
-        const words = processedText.split(' ');
-        const avgTimePerWord = 0.3; // Estimate 300ms per word
-        const timestamps = words.map((word: string, index: number) => ({
-          time: Math.round(index * avgTimePerWord * 100) / 100,
-          text: word
-        }));
-
-        return {
-          text: processedText,
-          timestamps
-        };
-      } catch (error) {
-        console.error('Groq transcription error:', error);
-        if (error instanceof Error) {
-          error.message = `Groq transcription failed: ${error.message}`;
+        if (response.status === 401) {
+          throw new Error('Invalid API key. Please check your Groq API key.');
         }
-        throw error;
+        if (response.status === 413) {
+          throw new Error('Audio file too large. Maximum size is 25MB.');
+        }
+      } catch (e) {
+        console.error('Error parsing Groq error response:', e);
       }
+      throw new Error(errorMessage);
     }
-      
-    case 'openai': {
-      apiUrl = 'https://api.openai.com/v1/audio/transcriptions';
-      headers = {
-        'Authorization': `Bearer ${apiKey}`,
-        'Accept': 'application/json'
-      };
-      const audioFile = new File([chunk], 'audio.wav', { 
-        type: chunk.type || 'audio/wav'
-      });
-      formData.append('file', audioFile);
-      formData.append('model', 'whisper-1');
-      formData.append('response_format', 'verbose_json');
-      break;
+
+    const result = await response.json();
+    
+    if (!result.text) {
+      throw new Error('No transcription data received from Groq');
     }
-      
-    default:
-      throw new Error('Invalid provider');
+
+    // Process the text to ensure proper formatting
+    const processedText = result.text
+      .replace(/\s+/g, ' ')
+      .replace(/([.!?])\s*/g, '$1 ')
+      .replace(/([.!?])\s+(?=[A-Z])/g, '$1\n\n')
+      .trim();
+
+    // Create timestamps from segments if available, or estimate based on word count
+    let timestamps = [];
+    if (result.segments) {
+      timestamps = result.segments.map((segment: any) => ({
+        time: segment.start,
+        text: segment.text.trim()
+      }));
+    } else {
+      const words = processedText.split(' ');
+      const avgTimePerWord = 0.3;
+      timestamps = words.map((word: string, index: number) => ({
+        time: Math.round(index * avgTimePerWord * 100) / 100,
+        text: word
+      }));
+    }
+
+    return {
+      text: processedText,
+      timestamps
+    };
+  } catch (error) {
+    console.error('Transcription error:', error);
+    throw new Error(`Transcription failed: ${error.message}`);
   }
-
-  // This section only runs for OpenAI since Hugging Face and Groq return early
-  console.log(`Making request to ${apiUrl} with provider ${provider}`);
-  
-  const response = await fetch(apiUrl, {
-    method: 'POST',
-    headers,
-    body: formData
-  });
-
-  if (!response.ok) {
-    let errorMessage = `API request failed with status ${response.status}`;
-    try {
-      const errorData = await response.json();
-      errorMessage = errorData.error || errorMessage;
-    } catch {
-      // If parsing error response fails, use default message
-    }
-    throw new Error(errorMessage);
-  }
-
-  const result = await response.json();
-  
-  // Process response for OpenAI only
-  return {
-    text: result.text || '',
-    timestamps: result.segments?.map((segment: any) => ({
-      time: segment.start,
-      text: segment.text
-    })) || []
-  };
 }
